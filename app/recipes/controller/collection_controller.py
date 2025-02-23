@@ -22,8 +22,8 @@ def get_recipe_by_id_route(google_id: str = Query(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
-@router.get("/recipes/{collection_id}", response_model=List[RecipeListResponseDTO], status_code=200)
-def get_recipe_by_id_route(collection_id: int):
+@router.get("/recipes", response_model=List[RecipeListResponseDTO], status_code=200)
+def get_recipe_by_id_route(collection_id: int = Query(...)):
     try:
         recipes: List[RecipeResponseDTO] = get_recipes(collection_id=collection_id)
         response = [

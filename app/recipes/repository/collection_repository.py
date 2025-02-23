@@ -18,3 +18,13 @@ def get_collections_by_user_id(db: Session, google_id: str):
 
 def get_recipes_collection(db: Session, collection_id: int):
     return db.query(Collection).filter(Collection.id == collection_id).first().recipes
+
+def update_collection(db: Session, collection: Collection):
+    db.query(Collection).filter(Collection.id == collection.id).update(collection)
+    db.commit()
+    return collection
+
+def delete_collection(db: Session, collection: Collection):
+    db.delete(collection)
+    db.commit()
+    return collection
