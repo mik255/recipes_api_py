@@ -22,6 +22,7 @@ class RecipeCreateDTO(BaseModel):
 class RecipeResponseDTO(BaseModel):
     id: int
     title: str
+    description: str
     images: List[ImageDTO]
     ingredients: List[IngredientDTO]
     preparations: List[PreparationDTO]

@@ -17,8 +17,8 @@ def create_recipe_service(recipe_dto: RecipeCreateDTO) -> Recipe:
     """
     with next(get_db()) as db:
         # Criar a instância do modelo Recipe
-        new_recipe = Recipe(title=recipe_dto.title)
-
+        new_recipe = Recipe(title=recipe_dto.title, description=recipe_dto.description)
+       
         # Adicionar imagens
         new_recipe.images = [Image(url=image.url) for image in recipe_dto.images]
 
@@ -53,7 +53,7 @@ def get_all_recipe_service() -> list[RecipeListResponseDTO]:
             RecipeListResponseDTO(
                 id=recipe.id,
                 title=recipe.title,
-                description=None,
+                description=recipe.description,
                 tumbnail=recipe.images[0].url if recipe.images else None,
             )
             for recipe in recipes
@@ -61,14 +61,10 @@ def get_all_recipe_service() -> list[RecipeListResponseDTO]:
 
 
 def get_recipe_by_id_service(recipe_id: int) -> Recipe:
-    """
-    Serviço para buscar uma receita pelo ID.
-    :param recipe_id: ID da receita a ser buscada.
-    :return: Objeto Recipe correspondente ao ID fornecido.
-    """
-    with next(get_db()) as db:
-        return get_recipe_by_id(db, recipe_id)
 
+    with next(get_db()) as db:
+        data = get_recipe_by_id(db, recipe_id)
+    return data
 
 def get_sessions() -> list[Session]:
     """

@@ -28,6 +28,7 @@ def list_recipe_route():
 @router.get("/{recipe_id}", response_model=RecipeResponseDTO, status_code=200)
 def get_recipe_by_id_route(recipe_id: int):
     try:
-        return get_recipe_by_id_service(recipe_id)
+        data = get_recipe_by_id_service(recipe_id)
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
