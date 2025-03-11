@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Configuração correta para conectar ao PostgreSQL
-DATABASE_URL = "postgresql+psycopg2://postgres:3444@localhost:5432/my-recipe-db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Criar o engine para a conexão
 engine = create_engine(DATABASE_URL, echo=True)

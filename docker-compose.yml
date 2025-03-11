@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   app:
     build:
@@ -8,23 +6,27 @@ services:
     container_name: fastapi_app
     ports:
       - "8000:8000"
-    volumes:
-      - ./app:/app/app
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/fastapi_db
+    depends_on:
+      meilisearch:
+        condition: service_healthy  # ✅ Aguarda o Meilisearch estar pronto
+    restart: always
+    env_file:
+      - .env
+    
 
-  postgres:
-    image: postgres:13
-    container_name: postgres_db
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: meilisearch
     restart: always
     ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: fastapi_db
+      - "7700:7700"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - meili_data:/meili_data
+    healthcheck:  # ✅ Verifica se o Meilisearch está pronto
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  postgres_data:
+  meili_data:

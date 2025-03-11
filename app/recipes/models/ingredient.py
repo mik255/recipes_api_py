@@ -7,8 +7,7 @@ class Ingredient(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
-    quantity = Column(String, nullable=False)  # Exemplo: "2 xícaras"
-
+    description = Column(String, nullable=False, server_default="Sem descrição")
     # Chave estrangeira para a receita
     recipe_id = Column(Integer, ForeignKey("recipe.id"))
 

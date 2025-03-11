@@ -1,34 +1,32 @@
 # Usar a imagem base do Python
 FROM python:3.10-slim
 
-# Configurar o diretório de trabalho
+# Configurar o diretório de trabalho para o diretório raiz do projeto
 WORKDIR /app
 
-# Copiar o arquivo de dependências
+# Copiar os arquivos de dependências
 COPY requirements.txt .
 
-# Instalar dependências do sistema necessárias e as dependências Python
+# Instalar dependências do sistema e as dependências Python
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     && pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir debugpy \
     && apt-get remove -y gcc \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar o código-fonte e o script de inicialização para o container
-COPY ./app /app
-COPY ./start.sh /app/start.sh
+# Copiar todo o código-fonte para dentro do container
+COPY . /app  
 
-# Configurar o PYTHONPATH
-ENV PYTHONPATH=/app
+# **Configurar o PYTHONPATH corretamente**
+ENV PYTHONPATH=/app 
 
-# Tornar o script executável
+# Tornar o script de inicialização executável
 RUN chmod +x /app/start.sh
 
-# Expôr as portas da aplicação e do debug
-EXPOSE 8000 5678
+# Expôr a porta da aplicação
+EXPOSE 8000
 
 # Usar o script de inicialização como ponto de entrada
-CMD ["sh", "-c", "python -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
+CMD ["/app/start.sh"]

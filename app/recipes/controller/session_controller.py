@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from app.recipes.dtos.recipe_dto import RecipeCreateDTO, RecipeListResponseDTO, RecipeResponseDTO
 from app.recipes.dtos.session_dto import SessionRequestDTO, SessionResponseDTO
-from app.recipes.services.session_service import create_session_service, get_sessions 
+from app.recipes.services.session_service import create_session_service, get_sessions, add_recipe_to_session_service
 
 
 
@@ -43,5 +43,14 @@ def get_session():
             )
             for model_session in response
         ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+
+# add recipe to session
+@router.put("/{session_id}/add_recipe/{recipe_id}", status_code=200)
+def add_recipe_to_session(session_id: int, recipe_id: int):
+    try:
+        return add_recipe_to_session_service(session_id, recipe_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

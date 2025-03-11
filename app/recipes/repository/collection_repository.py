@@ -10,8 +10,8 @@ def create_collection(db: Session, collection: Collection):
 def get_all(db: Session):
     return db.query(Collection).all()
 
-def get_collections_by_user_id(db: Session, google_id: str):
-    user = db.query(User).filter(User.google_id == google_id).first()
+def get_collections_by_user_id(db: Session, user_id: int):
+    user = db.query(User).filter(User.id == user_id).first()
     if user:
         return user.collections
     return []
@@ -28,3 +28,6 @@ def delete_collection(db: Session, collection: Collection):
     db.delete(collection)
     db.commit()
     return collection
+
+def get_collection_by_id(db: Session, collection_id: int):
+    return db.query(Collection).filter(Collection.id == collection_id).first()

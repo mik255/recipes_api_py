@@ -8,7 +8,7 @@ class Preparation(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
     description = Column(String, nullable=True)
-
+    step = Column(Integer, nullable=False, server_default="0")
     # Chave estrangeira para a receita
     recipe_id = Column(Integer, ForeignKey("recipe.id"))
 

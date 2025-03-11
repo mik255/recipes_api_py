@@ -6,5 +6,8 @@ from .collection import Collection
 from .session import Session
 from .user import User
 from .recipe_collection import recipe_collection
-from .user_collection import user_collection
 from .session_recipe import session_recipe
+from .plan import Plan
+from .order import Order
+from .recipe_category import recipe_categories
+from .category import Category

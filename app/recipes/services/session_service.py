@@ -2,7 +2,7 @@ from app.database.dependences import get_db
 from app.recipes.dtos.session_dto import SessionRequestDTO
 from app.recipes.models.session import Session
 from app.recipes.repository.recipe_repository import get_all_sessions
-from app.recipes.repository.session_repository import create_session
+from app.recipes.repository.session_repository import create_session,add_recipe_to_session
 
 
 def create_session_service(dto: SessionRequestDTO):
@@ -11,7 +11,7 @@ def create_session_service(dto: SessionRequestDTO):
             title=dto.title, 
             description=dto.description, 
             type=dto.type, 
-            recipeType=dto.recipetype
+            recipeType=dto.recipe_type
             )
         return create_session(db, _session)
 
@@ -20,3 +20,7 @@ def get_sessions() -> list[Session]:
     with next(get_db()) as db:
         sessions = get_all_sessions(db)
         return sessions
+
+def add_recipe_to_session_service(session_id: int, recipe_id: int):
+    with next(get_db()) as db:
+        return add_recipe_to_session(db, session_id, recipe_id)
