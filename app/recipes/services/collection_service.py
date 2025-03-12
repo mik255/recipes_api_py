@@ -37,7 +37,9 @@ def get_recipes(collection_id:int) -> List[RecipeResponseDTO]:
 def delete(collection_id:int):
     with next(get_db()) as db:
         collection = db.query(Collection).filter(Collection.id == collection_id).first()
-        return db.delete(collection)
+        db.delete(collection)
+        db.commit()
+        return "Collection deleted."
     
 def update(collection_id: int, dto: CollectionDTO):
     with next(get_db()) as db:

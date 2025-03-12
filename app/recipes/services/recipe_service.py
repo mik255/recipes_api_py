@@ -1,8 +1,10 @@
 import os
 from typing import List
 from app.database.dependences import get_db
+from app.recipes.dtos.ask_recipe_dto import AskRecipeDTO
 from app.recipes.dtos.recipe_dto import RecipeCreateDTO, RecipeListResponseDTO, RecipeRequestFilterDTO
 from app.recipes.dtos.session_dto import SessionResponseDTO
+from app.recipes.models.ask_recipe import AskRecipe
 from app.recipes.models.category import Category
 from app.recipes.models.recipe import Recipe
 from app.recipes.models.ingredient import Ingredient
@@ -325,6 +327,8 @@ def search_recipes_by_categories(dto: RecipeRequestFilterDTO):
         dto.query,
                 {
                     "limit": dto.size,
+                     "offset": 0,
+                     "hitsPerPage":dto.size,
                     "page": dto.page,
                     "filter": filter_expr
                 }
@@ -353,3 +357,12 @@ def add_recipe_to_collection_service(collection_id: int, recipe_id: int):
         db.commit()
         db.refresh(collection)
         return collection
+    
+
+def ask_order_service(dto: AskRecipeDTO):
+    with next(get_db()) as db:
+        new_ask_recipe = AskRecipe(description=dto.description)
+        db.add(new_ask_recipe)
+        db.commit()
+        db.refresh(new_ask_recipe)
+        return new_ask_recipe

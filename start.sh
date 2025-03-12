@@ -19,4 +19,4 @@ alembic upgrade head  # ✅ Agora pode rodar direto, pois `alembic.ini` está no
 
 # Iniciar o FastAPI
 echo "🚀 Iniciando FastAPI..."
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload 

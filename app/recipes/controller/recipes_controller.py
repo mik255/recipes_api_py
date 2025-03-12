@@ -3,6 +3,7 @@ import boto3
 import uuid
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from typing import List, Optional
+from app.recipes.dtos.ask_recipe_dto import AskRecipeDTO
 from app.recipes.dtos.image_dto import ImageDTO
 from app.recipes.dtos.recipe_dto import (
     IARecipeCreateDTO,
@@ -13,6 +14,7 @@ from app.recipes.dtos.recipe_dto import (
 )
 from app.recipes.services.IA.create_recipe import IA_recipe_creator
 from app.recipes.services.recipe_service import (
+    add_recipe_to_collection_service,
     create_recipe_service,
     get_all_recipe_service,
     get_all_recipe_service_meilisearch,
@@ -21,6 +23,7 @@ from app.recipes.services.recipe_service import (
     update_recipe_service,
     delete_recipe_service,
     set_categories_service,
+    ask_order_service,
 )
 from app.recipes.services.session_service import (
     add_recipe_to_session_service,
@@ -69,6 +72,8 @@ def create_recipe_route(dto: RecipeCreateDTO):
 
     try:
         recipe = create_recipe_service(dto)
+        if dto.collection_id:
+            add_recipe_to_collection_service(recipe_id=recipe.id, collection_id =dto.collection_id)
         add_recipe_to_session_service(session_id=dto.session_id, recipe_id=recipe.id)
         set_categories_service(recipe.id, dto.categories)
         return recipe
@@ -127,5 +132,13 @@ def delete_recipe_route(recipe_id: int):
 def delete_recipe_route():
     try:
         return get_all_recipe_service_meilisearch()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    
+
+@router.post("/ask_order", status_code=200)
+def ask_order_route(dto:AskRecipeDTO):
+    try:
+        return ask_order_service(dto)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

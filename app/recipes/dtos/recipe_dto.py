@@ -24,6 +24,7 @@ class RecipeCreateDTO(BaseModel):
     #enum facil, medio, dificil
     dificulty: DificultyEnum
     portions : int
+    collection_id: int | None = None
     class Config:
         orm_mode = True
         from_attributes = True
@@ -60,7 +61,6 @@ class RecipeResponseDTO(BaseModel):
     #enum facil, medio, dificil
     dificulty: str | None = 'Fácil'
     portions : int | None = 1
-
     class Config:
         orm_mode = True
 
