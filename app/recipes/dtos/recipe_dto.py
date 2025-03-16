@@ -13,7 +13,7 @@ class DificultyEnum(str,Enum):
     medio = 'Médio'
     dificil = 'Difícil'
 class RecipeCreateDTO(BaseModel):
-    id: int | None
+    id: int | None = None
     title: str
     images: List[ImageDTO]
     ingredients: List[IngredientDTO]
