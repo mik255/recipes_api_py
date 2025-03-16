@@ -13,6 +13,7 @@ class DificultyEnum(str,Enum):
     medio = 'Médio'
     dificil = 'Difícil'
 class RecipeCreateDTO(BaseModel):
+    id: int | None
     title: str
     images: List[ImageDTO]
     ingredients: List[IngredientDTO]
@@ -25,6 +26,9 @@ class RecipeCreateDTO(BaseModel):
     dificulty: DificultyEnum
     portions : int
     collection_id: int | None = None
+    youtube_url: str | None = None
+    property: str | None = 'admin'
+    download_image: bool | None = False
     class Config:
         orm_mode = True
         from_attributes = True
@@ -32,9 +36,10 @@ class RecipeCreateDTO(BaseModel):
 
 class RecipeRequestFilterDTO(BaseModel):
     query: Optional[str]
-    categories: Optional[List[str]]
+    categories: List[str] | None = []
     size: int | None = 10
     page: int | None = 1
+    ingredients: List[str] | None = []
     
     class Config:
         orm_mode = True
@@ -50,6 +55,7 @@ class IARecipeCreateDTO(BaseModel):
         from_attributes = True
 
 class RecipeResponseDTO(BaseModel):
+    id: int | None
     title: str
     images: List[ImageDTO]
     ingredients: List[IngredientDTO]
@@ -61,14 +67,17 @@ class RecipeResponseDTO(BaseModel):
     #enum facil, medio, dificil
     dificulty: str | None = 'Fácil'
     portions : int | None = 1
+    youtube_url: str | None = None
+    property: str | None = 'admin'
     class Config:
         orm_mode = True
 
 class RecipeListResponseDTO(BaseModel):
-    id: int
+    id: int | None
     title: str
     description: Optional[str]
     tumbnail: Optional[str]
+    property: str | None = ''
 
     class Config:
         orm_mode = True

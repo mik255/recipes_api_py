@@ -2,7 +2,7 @@ from fastapi import APIRouter, Header,HTTPException, Depends, Query
 from typing import List
 from app.recipes.dtos.collection_dto import CollectionDTO, CollectionResponseDTO
 from app.recipes.dtos.recipe_dto import RecipeListResponseDTO, RecipeResponseDTO
-from app.recipes.services.collection_service import create, get_all_by_user_id, get_recipes, delete, update
+from app.recipes.services.collection_service import create, get_all_by_user_id, get_recipes, delete, update,remove_recipe_to_collection_service
 from app.recipes.services.recipe_service import add_recipe_to_collection_service
 
 router = APIRouter()
@@ -65,6 +65,16 @@ def update_collection(collection_id: int, dto: CollectionDTO):
 @router.put("/{collection_id}/add_recipe/{recipe_id}", status_code=200)
 def add_recipe_to_collection(collection_id: int, recipe_id: int):
     try:
+        
         return add_recipe_to_collection_service(collection_id, recipe_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    
+#remove recipe to colection
+@router.delete("/{collection_id}/remove_recipe/{recipe_id}", status_code=200)
+def remove_recipe_to_collection(collection_id: int, recipe_id: int):
+    try:
+        
+        return remove_recipe_to_collection_service(collection_id =collection_id, recipe_id = recipe_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

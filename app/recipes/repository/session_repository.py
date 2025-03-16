@@ -9,7 +9,7 @@ def create_session(db: Session, model: SessionModel):
     return model
 
 def get_all_sessions(db: Session):
-    return db.query(SessionModel).all()
+     return db.query(SessionModel).filter(SessionModel.id != 5).all()
 
 def add_recipe_to_session(db: Session, session_id: int, recipe_id: int):
     session = db.query(SessionModel).filter(SessionModel.id == session_id).first()

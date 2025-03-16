@@ -8,7 +8,15 @@ from sqlalchemy.orm import sessionmaker
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Criar o engine para a conexão
-engine = create_engine(DATABASE_URL, echo=True)
+# Criar o engine para a conexão com configurações otimizadas
+engine = create_engine(
+    DATABASE_URL,
+    echo=True,
+    pool_size=50,         # 🔹 Limita o número de conexões abertas simultaneamente
+    max_overflow=5,       # 🔹 Conexões extras além do pool_size
+    pool_recycle=600,    # 🔹 Fecha conexões ociosas após 30 min
+    pool_pre_ping=True    # 🔹 Verifica se a conexão está ativa antes de usar
+)
 
 # Configurar a sessão do banco
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

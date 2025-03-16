@@ -28,7 +28,8 @@ index = client.index("recipes")
 def configure_meilisearch():
     client.create_index("recipes", {"primaryKey": "id"})
     index.update_settings({
-        "filterableAttributes": ["categories"]
+                "filterableAttributes": ["categories", "ingredients_keywords","property"],
+        "searchableAttributes": ["title", "description", "ingredients_text"]
     })
    
     print("Filterable attributes configurados com sucesso!")
@@ -36,14 +37,8 @@ def configure_meilisearch():
 configure_meilisearch()
 
 def create_recipe_service(recipe_dto: RecipeCreateDTO) -> Recipe:
-    """
-    Serviço para criar uma nova receita.
-    :param recipe_dto: Objeto de entrada do tipo RecipeCreateDTO contendo os dados da receita.
-    :return: Objeto Recipe criado no banco de dados.
-    """
     db = next(get_db())
 
-    # Criar a instância do modelo Recipe com campos simples direto do DTO
     new_recipe = Recipe(
         title=recipe_dto.title,
         description=recipe_dto.description,
@@ -51,19 +46,22 @@ def create_recipe_service(recipe_dto: RecipeCreateDTO) -> Recipe:
         preparation_time=recipe_dto.preparation_time,
         dificulty=recipe_dto.dificulty,
         portions=recipe_dto.portions,
+        youtube_url=recipe_dto.youtube_url,
+        property=recipe_dto.property,
     )
-
-    # Mapear imagens, ingredientes e preparações
+    
     new_recipe.images = [Image(**image.model_dump()) for image in recipe_dto.images]
     new_recipe.ingredients = [Ingredient(**ingredient.model_dump()) for ingredient in recipe_dto.ingredients]
     new_recipe.preparations = [Preparation(**prep.model_dump()) for prep in recipe_dto.preparations]
 
-    # Persistir no banco
     db.add(new_recipe)
     db.commit()
     db.refresh(new_recipe)
 
-    # Indexar no Meilisearch
+    ingredients_list = [ing.title for ing in new_recipe.ingredients]
+    ingredients_text = ", ".join(ingredients_list)
+    ingredients_keywords = [ing.lower().strip() for ing in ingredients_list]
+
     doc = {
         "id": new_recipe.id,
         "title": new_recipe.title,
@@ -73,7 +71,9 @@ def create_recipe_service(recipe_dto: RecipeCreateDTO) -> Recipe:
         "preparation_time": new_recipe.preparation_time,
         "dificulty": new_recipe.dificulty,
         "portions": new_recipe.portions,
-        "ingredients": [ing.title for ing in new_recipe.ingredients],
+        "ingredients": ingredients_list,
+        "ingredients_text": ingredients_text,
+        "ingredients_keywords": ingredients_keywords,
         "preparations": [prep.title for prep in new_recipe.preparations],
         "session_id": new_recipe.session_id,
     }
@@ -100,6 +100,7 @@ def get_all_recipe_service() -> list[RecipeListResponseDTO]:
                 title=recipe.title,
                 description=recipe.description,
                 tumbnail=recipe.images[0].url if recipe.images else None,
+                property=recipe.property
             )
             for recipe in recipes
         ]
@@ -109,7 +110,7 @@ def get_recipe_by_id_service(recipe_id: int) -> dict:
 
     with next(get_db()) as db:
         data = get_recipe_by_id(db, recipe_id)
-        data.session_id = data.sessions[0].id
+    
         response = data.__dict__.copy()
         response['categories'] = [cat.name for cat in data.categories]
     return response
@@ -141,34 +142,38 @@ def update_recipe_service(recipe_id: int, dto: RecipeCreateDTO) -> Recipe:
             for ingredient in dto.ingredients
         ]
         recipe.preparations = [
-            Preparation(title=prep.title, description=prep.description,step=prep.step)
+            Preparation(title=prep.title, description=prep.description, step=prep.step)
             for prep in dto.preparations
         ]
         db.commit()
         db.refresh(recipe)
-         # Atualizar documento no Meilisearch
+        
+        ingredients_list = [ing.title for ing in recipe.ingredients]
+        ingredients_text = ", ".join(ingredients_list)
+        ingredients_keywords = [ing.lower().strip() for ing in ingredients_list]
+
         doc = {
-        "id": recipe.id,
-        "title": recipe.title,
-        "description": recipe.description,
-        "categories": [cat.name for cat in recipe.categories],
-        "images": [img.url for img in recipe.images] if recipe.images else [],
-        "preparation_time": recipe.preparation_time,
-        "dificulty": recipe.dificulty,
-        "portions": recipe.portions,
-        "ingredients": [ing.title for ing in recipe.ingredients],
-        "preparations": [prep.title for prep in recipe.preparations],
-        "session_id": recipe.session_id,
+            "id": recipe.id,
+            "title": recipe.title,
+            "description": recipe.description,
+            "categories": [cat.name for cat in recipe.categories],
+            "images": [img.url for img in recipe.images] if recipe.images else [],
+            "preparation_time": recipe.preparation_time,
+            "dificulty": recipe.dificulty,
+            "portions": recipe.portions,
+            "ingredients": ingredients_list,
+            "ingredients_text": ingredients_text,
+            "ingredients_keywords": ingredients_keywords,
+            "preparations": [prep.title for prep in recipe.preparations],
+            "session_id": recipe.session_id,
         }
 
         try:
-            # A chamada update_documents atualiza (ou cria) documentos com base no 'id'
             index.update_documents([doc])
-        except:
-            print(f"Erro ao atualizar receita {recipe.id} no Meilisearch: ")
+        except Exception as e:
+            print(f"Erro ao atualizar receita {recipe.id} no Meilisearch: {e}")
 
         return recipe
-    
 
 
 def delete_recipe_service(recipe_id: int) -> Recipe:
@@ -251,55 +256,37 @@ def filter_recipes_by_categories_service(
     ]
 
 def get_all_recipe_service_meilisearch() -> List[RecipeListResponseDTO]:
-    """
-    Serviço para listar todas as receitas e garantir que estejam indexadas no Meilisearch.
-    """
     db = next(get_db())
-
-    print("🔍 Buscando todas as receitas do banco de dados...",flush=True)
     recipes = get_all_recipes(db)
-    print(f"✅ {len(recipes)} receitas encontradas no banco de dados.",flush=True)
-
-    if not recipes:
-        print("⚠️ Nenhuma receita encontrada no banco de dados.",flush=True)
-        return []
-
-    # Criando documentos para indexação
+    
     docs_for_index = []
     for recipe in recipes:
+        ingredients_list = [ing.description for ing in recipe.ingredients]
+        ingredients_text = ", ".join(ingredients_list)
+        ingredients_keywords = [ing.lower().strip() for ing in ingredients_list]
+        
         doc = {
             "id": recipe.id,
             "title": recipe.title,
             "description": recipe.description,
-            "categories": [cat.name for cat in recipe.categories] if recipe.categories else [],
+            "categories": [cat.name for cat in recipe.categories],
             "images": [img.url for img in recipe.images] if recipe.images else [],
             "preparation_time": recipe.preparation_time,
             "dificulty": recipe.dificulty,
             "portions": recipe.portions,
-            "ingredients": [ing.title for ing in recipe.ingredients],
+            "ingredients": ingredients_list,
+            "ingredients_text": ingredients_text,
+            "ingredients_keywords": ingredients_keywords,
             "preparations": [prep.title for prep in recipe.preparations],
-            "session_id": recipe.session_id,
+            "property": recipe.property,
         }
         docs_for_index.append(doc)
-
-    print(f"📡 Tentando indexar {len(docs_for_index)} receitas no Meilisearch...",flush=True)
-
+    
     try:
-        # Verificar se o índice está acessível
-        index_stats = index.get_stats()
-        print(f"📊 Status do índice antes da indexação: {index_stats}",flush=True)
-
-        # Adicionar os documentos ao Meilisearch
-        response = index.add_documents(docs_for_index)
-        print(f"✅ Resposta do Meilisearch: {response}",flush=True)
-
+        index.add_documents(docs_for_index)
     except Exception as e:
-        print(f"❌ Erro ao indexar receitas no Meilisearch: {e}",flush=True)
-        return []
-
-    print("✅ Todas as receitas foram indexadas com sucesso no Meilisearch!",flush=True)
-
-    # Retorna as receitas formatadas
+        print(f"Erro ao indexar receitas no Meilisearch: {e}")
+    
     return [
         RecipeListResponseDTO(
             id=recipe.id,
@@ -312,42 +299,46 @@ def get_all_recipe_service_meilisearch() -> List[RecipeListResponseDTO]:
 
 
 def search_recipes_by_categories(dto: RecipeRequestFilterDTO):
-    """
-    Busca no Meilisearch por uma lista de categorias (lógica de 'OU'),
-    além de pesquisar por 'query' nos campos configurados como searchable.
-    """
+    filter_conditions = ['property = "admin"']
 
-    # Se tiver categorias, monta o filtro com "OR"
-    filter_expr = None
     if dto.categories:
-        filter_expr = " OR ".join([f"categories = '{cat}'" for cat in dto.categories])
+        category_filter = " OR ".join([f"categories = '{cat}'" for cat in dto.categories])
+        filter_conditions.append(f"({category_filter})")
+
+    filter_expr = " AND ".join(filter_conditions) if filter_conditions else None
 
     try:
         result = index.search(
-        dto.query,
-                {
-                    "limit": dto.size,
-                     "offset": 0,
-                     "hitsPerPage":dto.size,
-                    "page": dto.page,
-                    "filter": filter_expr
-                }
-             )
-        
-        result = result["hits"]
-        return [
-            RecipeListResponseDTO(
-                id=item["id"],
-                title=item["title"],
-                description=item["description"],
-                tumbnail=item["images"][0] if item["images"] else None
-            )
-            for item in result
-        ]
+            " ".join(dto.ingredients) if dto.ingredients else dto.query,  # 🔹 Busca fuzzy nos ingredientes
+            {
+                "limit": dto.size,
+                "offset": 0,
+                "hitsPerPage": dto.size,
+                "page": dto.page,
+                "filter": filter_expr,
+                "attributesToSearchOn": ["ingredients_text"]  # 🔹 Foco na busca dentro dos ingredientes
+            }
+        )
+
+        if "hits" not in result or not result["hits"]:
+            print("Nenhuma receita encontrada.")
+            return []
+
+        return {
+            "total_pages": result["totalPages"],
+            "recipes": [
+                RecipeListResponseDTO(
+                    id=item["id"],
+                    title=item["title"],
+                    description=item["description"],
+                    tumbnail=item["images"][0] if "images" in item else None,
+                )
+                for item in result["hits"]
+            ]
+        }
     except Exception as e:
-        print(f"Erro ao buscar receitas no Meilisearch:", e)
+        print(f"Erro ao buscar receitas no Meilisearch: {e}")
         return []
-    
 
 def add_recipe_to_collection_service(collection_id: int, recipe_id: int):
     with next(get_db()) as db:
@@ -358,6 +349,16 @@ def add_recipe_to_collection_service(collection_id: int, recipe_id: int):
         db.refresh(collection)
         return collection
     
+
+def update_recipe_to_session_service(session_id: int, recipe_id: int):
+    with next(get_db()) as db:
+        session = db.query(Session).filter(Session.id == session_id).first()
+        recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
+        session.recipes.remove(recipe)
+        session.recipes.append(recipe)
+        db.commit()
+        db.refresh(session)
+        return session
 
 def ask_order_service(dto: AskRecipeDTO):
     with next(get_db()) as db:

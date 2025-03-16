@@ -15,4 +15,4 @@ def get_recipe_by_id(db: Session, recipe_id: int):
     return db.query(Recipe).filter(Recipe.id == recipe_id).first()
 
 def get_all_sessions(db: Session):
-    return db.query(SessionModel).all()
+    return db.query(SessionModel).filter(SessionModel.id != 5).all()

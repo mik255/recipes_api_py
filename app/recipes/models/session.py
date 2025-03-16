@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from app.database.config import Base
-from app.recipes.models.session_recipe import session_recipe
 
 class Session(Base):
     __tablename__ = "session"
@@ -11,6 +10,6 @@ class Session(Base):
     description = Column(String, nullable=False)
     type = Column(String, nullable=False)
     recipeType = Column(String, nullable=False)
-    recipes = relationship("Recipe", secondary=session_recipe, back_populates="sessions", lazy="joined")
+    recipes = relationship("Recipe", back_populates="sessions", lazy="joined")
     
     

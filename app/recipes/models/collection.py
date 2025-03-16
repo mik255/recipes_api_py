@@ -12,12 +12,8 @@ class Collection(Base):
 
     # ForeignKey para indicar que cada coleção pertence a um único usuário
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-
-    # Relacionamento One-to-Many com User
-    user = relationship("User", back_populates="collections")
-
-    # Relacionamento Many-to-Many com Recipe
-    recipes = relationship("Recipe", secondary="recipe_collection", back_populates="collections")
+    recipes = relationship("Recipe", back_populates="collection", lazy="joined")
+    user = relationship("User", back_populates="collections", lazy="joined")
 
 
 

@@ -24,3 +24,15 @@ def get_sessions() -> list[Session]:
 def add_recipe_to_session_service(session_id: int, recipe_id: int):
     with next(get_db()) as db:
         return add_recipe_to_session(db, session_id, recipe_id)
+    
+def update_session_service(session_id: int, dto: SessionRequestDTO):
+    with next(get_db()) as db:
+        session = db.query(Session).filter(Session.id == session_id).first()
+        session.title = dto.title
+        session.description = dto.description
+        session.type = dto.type
+        session.recipeType = dto.recipe_type
+        db.commit()
+        db.refresh(session)
+        return
+    

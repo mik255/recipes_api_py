@@ -1,3 +1,4 @@
+import copy
 from typing import List
 from app.database.dependences import get_db
 from app.recipes.dtos.collection_dto import CollectionDTO, CollectionResponseDTO
@@ -56,3 +57,22 @@ def update(collection_id: int, dto: CollectionDTO):
         db.refresh(collection)  # Atualiza a instância com os dados do banco
 
         return collection
+
+def remove_recipe_to_collection_service(recipe_id:int, collection_id:int):
+    with next(get_db()) as db:
+        collection = db.query(Collection).filter(Collection.id == collection_id).first()
+        recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
+        collection.recipes.remove(recipe)
+        db.commit()
+        db.refresh(collection)
+        return "Recipe removed from collection."
+
+def update_recipe_to_collection_service(recipe_id: int, collection_id: int):
+    with next(get_db()) as db:
+        collection = db.query(Collection).filter(Collection.id == collection_id).first()
+        recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
+        collection.recipes.append(recipe)
+        db.commit()
+        db.refresh(collection)
+        
+        return "Recipe added to collection."

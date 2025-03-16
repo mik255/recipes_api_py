@@ -17,8 +17,11 @@ class Recipe(Base):
     ingredients = relationship("Ingredient", back_populates="recipe", lazy="joined")
     preparations = relationship("Preparation", back_populates="recipe", lazy="joined")
     session_id = Column(Integer, ForeignKey("session.id"))
-    sessions = relationship("Session", secondary="session_recipe", back_populates="recipes")
-    collections = relationship("Collection", secondary="recipe_collection", back_populates="recipes")
+    collection_id = Column(Integer, ForeignKey("collection.id"))
+    youtube_url = Column(String, nullable=True)
+    property = Column(String, nullable=True)
+    sessions = relationship("Session", back_populates="recipes", lazy="joined")
+    collection = relationship("Collection", back_populates="recipes")
     # Relacionamento com Category via a tabela intermediária
     categories = relationship(
         "Category",

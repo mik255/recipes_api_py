@@ -11,9 +11,6 @@ class Order(Base):
     user_id = Column(Integer, ForeignKey("user.id"))  # Chave estrangeira para o User
     plan = relationship("Plan", back_populates="orders")
     amount = Column(Float, index=True)
-    
-    # Relacionamento com User (One-to-Many)
-    user = relationship("User", back_populates="orders")
 
     # Campos de data
     created_at = Column(DateTime, default=datetime.utcnow)  # Data de criação do pedido

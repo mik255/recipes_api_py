@@ -11,8 +11,5 @@ class Plan(Base):
     description = Column(String, index=True)
     amount = Column(Float, index=True)
     
-    # Relacionamento com User (One-to-Many)
-    users = relationship("User", back_populates="plan")
-    
     # Relacionamento com Order (One-to-Many)
     orders = relationship("Order", back_populates="plan")
