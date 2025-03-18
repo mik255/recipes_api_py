@@ -1,9 +1,12 @@
 import os
 from typing import List
+from fastapi import HTTPException
+import openai
+import psycopg2
+
 from app.database.dependences import get_db
 from app.recipes.dtos.ask_recipe_dto import AskRecipeDTO
 from app.recipes.dtos.recipe_dto import RecipeCreateDTO, RecipeListResponseDTO, RecipeRequestFilterDTO
-from app.recipes.dtos.session_dto import SessionResponseDTO
 from app.recipes.models.ask_recipe import AskRecipe
 from app.recipes.models.category import Category
 from app.recipes.models.recipe import Recipe
@@ -13,30 +16,28 @@ from app.recipes.models.image import Image
 from app.recipes.models.session import Session
 from app.recipes.repository.collection_repository import get_collection_by_id
 from app.recipes.repository.recipe_repository import get_all_recipes, get_recipe_by_id, get_all_sessions
-from meilisearch import Client
 
-# 1) Conexão com Meilisearch
-# Carregar variáveis de ambiente do SSM
-MEILI_URL = os.getenv("MEILI_URL")  # Fallback padrão se não carregar
-MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY")  # Fallback padrão
+# Configuração da API OpenAI
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-client = Client(MEILI_URL, MEILI_MASTER_KEY)
+def gerar_embedding(texto: str):
+    """ Gera o embedding do título + descrição usando OpenAI (versão >= 1.0.0) """
+    try:
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# 2) Criar (ou obter) o índice chamado "recipes"
-index = client.index("recipes")
+        response = client.embeddings.create(
+            input=texto,
+            model="text-embedding-3-large"  # Substituir por um modelo mais preciso
+        )
 
-def configure_meilisearch():
-    client.create_index("recipes", {"primaryKey": "id"})
-    index.update_settings({
-                "filterableAttributes": ["categories", "ingredients_keywords","property"],
-        "searchableAttributes": ["title", "description", "ingredients_text"]
-    })
-   
-    print("Filterable attributes configurados com sucesso!")
+        return response.data[0].embedding  # Acessando corretamente os dados da resposta
+    except Exception as e:
+        print(f"Erro ao gerar embedding: {e}")
+        return None
 
-configure_meilisearch()
 
 def create_recipe_service(recipe_dto: RecipeCreateDTO) -> Recipe:
+    """ Cria uma receita, gera embedding e salva no PostgreSQL """
     db = next(get_db())
 
     new_recipe = Recipe(
@@ -58,40 +59,52 @@ def create_recipe_service(recipe_dto: RecipeCreateDTO) -> Recipe:
     db.commit()
     db.refresh(new_recipe)
 
-    ingredients_list = [ing.title for ing in new_recipe.ingredients]
-    ingredients_text = ", ".join(ingredients_list)
-    ingredients_keywords = [ing.lower().strip() for ing in ingredients_list]
+    # Gera embedding do título + descrição
+    texto_embedding = f"{new_recipe.title}. {new_recipe.description}"
+    embedding = gerar_embedding(texto_embedding)
 
-    doc = {
-        "id": new_recipe.id,
-        "title": new_recipe.title,
-        "description": new_recipe.description,
-        "categories": [cat.name for cat in new_recipe.categories],
-        "images": [img.url for img in new_recipe.images] if new_recipe.images else [],
-        "preparation_time": new_recipe.preparation_time,
-        "dificulty": new_recipe.dificulty,
-        "portions": new_recipe.portions,
-        "ingredients": ingredients_list,
-        "ingredients_text": ingredients_text,
-        "ingredients_keywords": ingredients_keywords,
-        "preparations": [prep.title for prep in new_recipe.preparations],
-        "session_id": new_recipe.session_id,
-    }
+    if embedding is None:
+        print("Erro ao gerar embedding, receita salva sem embedding.")
 
+    # Salvar embedding no banco de dados
     try:
-        index.add_documents([doc])
+        conn = psycopg2.connect(
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT")
+        )
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE recipe SET embedding = %s WHERE id = %s",
+            (embedding, new_recipe.id)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
     except Exception as e:
-        print(f"Erro ao indexar receita {new_recipe.id} no Meilisearch: {e}")
+        print(f"Erro ao salvar embedding no banco: {e}")
 
     return new_recipe
 
+def set_categories_service(recipe_id: int, categories: list[str]) -> Recipe:
+    """ Atualiza as categorias de uma receita """
+    with next(get_db()) as db:
+        recipe = get_recipe_by_id(db, recipe_id)
 
+        # Buscar categorias no banco pelo nome
+        existing_categories = db.query(Category).filter(Category.name.in_(categories)).all()
+
+        # Atualiza as categorias da receita
+        recipe.categories = existing_categories
+        db.commit()
+        db.refresh(recipe)
+
+        return recipe
 
 def get_all_recipe_service() -> list[RecipeListResponseDTO]:
-    """
-    Serviço para listar todas as receitas.
-    :return: Lista de objetos RecipeListResponseDTO representando as receitas.
-    """
+    """ Lista todas as receitas """
     with next(get_db()) as db:
         recipes = get_all_recipes(db)
         return [
@@ -105,26 +118,16 @@ def get_all_recipe_service() -> list[RecipeListResponseDTO]:
             for recipe in recipes
         ]
 
-
 def get_recipe_by_id_service(recipe_id: int) -> dict:
-
+    """ Busca receita pelo ID """
     with next(get_db()) as db:
         data = get_recipe_by_id(db, recipe_id)
-    
         response = data.__dict__.copy()
         response['categories'] = [cat.name for cat in data.categories]
     return response
 
-def get_sessions() -> list[Session]:
-    """
-    Serviço para listar todas as sessões.
-    :return: Lista de objetos SessionResponseDTO representando as sessões.
-    """
-    with next(get_db()) as db:
-        sessions = get_all_sessions(db)
-        return sessions
-    
 def update_recipe_service(recipe_id: int, dto: RecipeCreateDTO) -> Recipe:
+    """ Atualiza uma receita e o embedding """
     with next(get_db()) as db:
         recipe = get_recipe_by_id(db, recipe_id)
         recipe.title = dto.title
@@ -134,213 +137,55 @@ def update_recipe_service(recipe_id: int, dto: RecipeCreateDTO) -> Recipe:
         recipe.preparation_time = dto.preparation_time
         recipe.dificulty = dto.dificulty
         recipe.portions = dto.portions
-        recipe.categories = [
-            Category(name=category) for category in dto.categories
-        ]
-        recipe.ingredients = [
-            Ingredient(title=ingredient.title, description=ingredient.description)
-            for ingredient in dto.ingredients
-        ]
-        recipe.preparations = [
-            Preparation(title=prep.title, description=prep.description, step=prep.step)
-            for prep in dto.preparations
-        ]
+        recipe.categories = [Category(name=category) for category in dto.categories]
+        recipe.ingredients = [Ingredient(title=ingredient.title, description=ingredient.description) for ingredient in dto.ingredients]
+        recipe.preparations = [Preparation(title=prep.title, description=prep.description, step=prep.step) for prep in dto.preparations]
+
         db.commit()
         db.refresh(recipe)
-        
-        ingredients_list = [ing.title for ing in recipe.ingredients]
-        ingredients_text = ", ".join(ingredients_list)
-        ingredients_keywords = [ing.lower().strip() for ing in ingredients_list]
 
-        doc = {
-            "id": recipe.id,
-            "title": recipe.title,
-            "description": recipe.description,
-            "categories": [cat.name for cat in recipe.categories],
-            "images": [img.url for img in recipe.images] if recipe.images else [],
-            "preparation_time": recipe.preparation_time,
-            "dificulty": recipe.dificulty,
-            "portions": recipe.portions,
-            "ingredients": ingredients_list,
-            "ingredients_text": ingredients_text,
-            "ingredients_keywords": ingredients_keywords,
-            "preparations": [prep.title for prep in recipe.preparations],
-            "session_id": recipe.session_id,
-        }
+        # Gera novo embedding
+        texto_embedding = f"{recipe.title}. {recipe.description}"
+        embedding = gerar_embedding(texto_embedding)
 
-        try:
-            index.update_documents([doc])
-        except Exception as e:
-            print(f"Erro ao atualizar receita {recipe.id} no Meilisearch: {e}")
+        if embedding is not None:
+            try:
+                conn = psycopg2.connect(
+                    dbname=os.getenv("DB_NAME"),
+                    user=os.getenv("DB_USER"),
+                    password=os.getenv("DB_PASSWORD"),
+                    host=os.getenv("DB_HOST"),
+                    port=os.getenv("DB_PORT")
+                )
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE recipe SET embedding = %s WHERE id = %s",
+                    (embedding, recipe.id)
+                )
+                conn.commit()
+                cur.close()
+                conn.close()
+            except Exception as e:
+                print(f"Erro ao salvar embedding no banco: {e}")
 
         return recipe
 
-
 def delete_recipe_service(recipe_id: int) -> Recipe:
+    """ Deleta uma receita """
     with next(get_db()) as db:
         recipe = get_recipe_by_id(db, recipe_id)
         db.delete(recipe)
         db.commit()
-         # Deletar do Meilisearch
-    try:
-        index.delete_document(str(recipe_id))  # Se o ID for int, converta para string
-    except:
-        print(f"Erro ao remover receita {recipe_id} no Meilisearch:")
-
     return recipe
-    
-def set_categories_service(recipe_id: int, categories: list[str]) -> Recipe:
+
+def get_sessions() -> list[Session]:
+    """ Lista todas as sessões """
     with next(get_db()) as db:
-    
-        recipe = get_recipe_by_id(db, recipe_id)
-        
-        # Buscar categorias no banco pelo nome
-        categories = db.query(Category).filter(Category.name.in_(categories)).all()
-        
-        recipe.categories = categories  # Aqui associamos os objetos Category, não strings
-        
-        db.commit()
-        db.refresh(recipe)
-            # Atualizar no Meilisearch
-    doc = {
-        "id": recipe.id,
-        "title": recipe.title,
-        "description": recipe.description,
-        "categories": [cat.name for cat in recipe.categories],
-        "images": [img.url for img in recipe.images] if recipe.images else [],
-        "preparation_time": recipe.preparation_time,
-        "dificulty": recipe.dificulty,
-        "portions": recipe.portions,
-        "ingredients": [ing.title for ing in recipe.ingredients],
-        "preparations": [prep.title for prep in recipe.preparations],
-        "session_id": recipe.session_id,
-    }
-
-    try:
-        index.update_documents([doc])
-    except:
-        print(f"Erro ao atualizar categorias da receita {recipe.id} no Meilisearch:")
-
-    return recipe
-
-def filter_recipes_by_categories_service(
-    dto:RecipeRequestFilterDTO
-) -> list[RecipeListResponseDTO]:
-    db = next(get_db())
-
-    # Buscar categorias pelo nome
-    categories = db.query(Category).filter(Category.name.in_(categories)).all()
-
-    # Se nenhuma categoria foi encontrada, retorna lista vazia
-    if not categories:
-        return []
-
-    # Buscar receitas que tenham pelo menos uma das categorias
-    query = (
-        db.query(Recipe)
-        .filter(Recipe.categories.any(Category.id.in_([cat.id for cat in categories])))
-        .limit(dto.size)
-        .offset((dto.page - 1) * dto.size)
-    )
-
-    recipes = query.all()
-
-    return [
-        RecipeListResponseDTO(
-            id=recipe.id,
-            title=recipe.title,
-            description=recipe.description,
-            tumbnail=recipe.images[0].url if recipe.images else None,
-        )
-        for recipe in recipes
-    ]
-
-def get_all_recipe_service_meilisearch() -> List[RecipeListResponseDTO]:
-    db = next(get_db())
-    recipes = get_all_recipes(db)
-    
-    docs_for_index = []
-    for recipe in recipes:
-        ingredients_list = [ing.description for ing in recipe.ingredients]
-        ingredients_text = ", ".join(ingredients_list)
-        ingredients_keywords = [ing.lower().strip() for ing in ingredients_list]
-        
-        doc = {
-            "id": recipe.id,
-            "title": recipe.title,
-            "description": recipe.description,
-            "categories": [cat.name for cat in recipe.categories],
-            "images": [img.url for img in recipe.images] if recipe.images else [],
-            "preparation_time": recipe.preparation_time,
-            "dificulty": recipe.dificulty,
-            "portions": recipe.portions,
-            "ingredients": ingredients_list,
-            "ingredients_text": ingredients_text,
-            "ingredients_keywords": ingredients_keywords,
-            "preparations": [prep.title for prep in recipe.preparations],
-            "property": recipe.property,
-        }
-        docs_for_index.append(doc)
-    
-    try:
-        index.add_documents(docs_for_index)
-    except Exception as e:
-        print(f"Erro ao indexar receitas no Meilisearch: {e}")
-    
-    return [
-        RecipeListResponseDTO(
-            id=recipe.id,
-            title=recipe.title,
-            description=recipe.description,
-            tumbnail=recipe.images[0].url if recipe.images else None,
-        )
-        for recipe in recipes
-    ]
-
-
-def search_recipes_by_categories(dto: RecipeRequestFilterDTO):
-    filter_conditions = ['property = "admin"']
-
-    if dto.categories:
-        category_filter = " OR ".join([f"categories = '{cat}'" for cat in dto.categories])
-        filter_conditions.append(f"({category_filter})")
-
-    filter_expr = " AND ".join(filter_conditions) if filter_conditions else None
-
-    try:
-        result = index.search(
-            " ".join(dto.ingredients) if dto.ingredients else dto.query,  # 🔹 Busca fuzzy nos ingredientes
-            {
-                "limit": dto.size,
-                "offset": 0,
-                "hitsPerPage": dto.size,
-                "page": dto.page,
-                "filter": filter_expr,
-                "attributesToSearchOn": ["ingredients_text"]  # 🔹 Foco na busca dentro dos ingredientes
-            }
-        )
-
-        if "hits" not in result or not result["hits"]:
-            print("Nenhuma receita encontrada.")
-            return []
-
-        return {
-            "total_pages": result["totalPages"],
-            "recipes": [
-                RecipeListResponseDTO(
-                    id=item["id"],
-                    title=item["title"],
-                    description=item["description"],
-                    tumbnail=item["images"][0] if "images" in item else None,
-                )
-                for item in result["hits"]
-            ]
-        }
-    except Exception as e:
-        print(f"Erro ao buscar receitas no Meilisearch: {e}")
-        return []
+        sessions = get_all_sessions(db)
+        return sessions
 
 def add_recipe_to_collection_service(collection_id: int, recipe_id: int):
+    """ Adiciona uma receita a uma coleção """
     with next(get_db()) as db:
         collection = get_collection_by_id(db, collection_id)
         recipe = get_recipe_by_id(db, recipe_id)
@@ -348,9 +193,9 @@ def add_recipe_to_collection_service(collection_id: int, recipe_id: int):
         db.commit()
         db.refresh(collection)
         return collection
-    
 
 def update_recipe_to_session_service(session_id: int, recipe_id: int):
+    """ Atualiza a sessão de uma receita """
     with next(get_db()) as db:
         session = db.query(Session).filter(Session.id == session_id).first()
         recipe = db.query(Recipe).filter(Recipe.id == recipe_id).first()
@@ -361,9 +206,137 @@ def update_recipe_to_session_service(session_id: int, recipe_id: int):
         return session
 
 def ask_order_service(dto: AskRecipeDTO):
+    """ Serviço para criar pedidos de receitas personalizadas """
     with next(get_db()) as db:
         new_ask_recipe = AskRecipe(description=dto.description)
         db.add(new_ask_recipe)
         db.commit()
         db.refresh(new_ask_recipe)
         return new_ask_recipe
+    
+def embedding_recipes():
+    """ Gera e armazena embeddings para todas as receitas no banco de dados """
+    try:
+        with next(get_db()) as db:
+            recipes = get_all_recipes(db)
+
+            if not recipes:
+                return {"message": "Nenhuma receita encontrada para gerar embeddings."}
+
+            conn = psycopg2.connect(
+                dbname=os.getenv("DB_NAME"),
+                user=os.getenv("DB_USER"),
+                password=os.getenv("DB_PASSWORD"),
+                host=os.getenv("DB_HOST"),
+                port=os.getenv("DB_PORT")
+            )
+            cur = conn.cursor()
+
+            updated_count = 0
+            for recipe in recipes:
+                join_ingr = " ".join([ingr.title for ingr in recipe.ingredients])
+                join_prep = " ".join([prep.title for prep in recipe.preparations])
+                texto_embedding = f"Título: {recipe.title}. Descrição: {recipe.description}. Ingredientes: {join_ingr}. Preparo: {join_prep}"
+
+                # Usa um modelo melhor para gerar embedding
+                embedding = gerar_embedding(texto_embedding)
+
+                if embedding:
+                    cur.execute(
+                        "UPDATE recipe SET embedding = %s WHERE id = %s",
+                        (embedding, recipe.id)
+                    )
+                    updated_count += 1
+
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            return {"message": f"Embeddings gerados com sucesso para {updated_count} receitas."}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
+    """ 
+    Busca receitas similares a uma consulta (query) usando embeddings e retorna resultados paginados.
+    Se a query estiver vazia, retorna receitas mais populares ou recentes.
+    """
+    try:
+        # Verifica se a query está vazia ou None
+        if not query or query.strip() == "":
+            use_embeddings = False  # Não gerar embeddings
+        else:
+            use_embeddings = True
+            query_embedding = gerar_embedding(query)
+
+        # Conexão com o banco de dados
+        conn = psycopg2.connect(
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT")
+        )
+        cur = conn.cursor()
+
+        # Paginação
+        offset = (page - 1) * size
+
+        if not use_embeddings:
+            cur.execute("""
+                SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
+                       r.youtube_url, r.property, r.session_id,
+                       ARRAY_AGG(i.url) AS image  -- Agrupa todas as imagens em um array
+                FROM recipe r
+                LEFT JOIN image i ON i.recipe_id = r.id
+                GROUP BY r.id
+                LIMIT %s OFFSET %s
+            """, (size, offset))
+        else:
+            cur.execute("""
+                SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
+                       r.youtube_url, r.property, r.session_id,
+                       ARRAY_AGG(i.url) AS image,  -- Agrupa image
+                       r.embedding <=> %s::vector AS distancia  -- Cosine similarity
+                FROM recipe r
+                LEFT JOIN image i ON i.recipe_id = r.id
+                GROUP BY r.id, distancia
+                ORDER BY distancia ASC  -- Quanto menor, mais similar
+                LIMIT %s OFFSET %s
+            """, (query_embedding, size, offset))
+
+        results = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        if not results:
+            return {"message": "Nenhuma receita encontrada."}
+
+        # Formata os resultados em JSON
+        recipes = [
+            {
+                "id": row[0],
+                "title": row[1],
+                "description": row[2],
+                "preparation_time": row[3],
+                "portions": row[4],
+                "dificulty": row[5],
+                "youtube_url": row[6],
+                "property": row[7],
+                "session_id": row[8],
+                "tumbnail": row[9][0] if row[9] else None,
+                "similarity_score": round(row[10], 4) if use_embeddings else None  # Retorna score só se for busca por embeddings
+            }
+            for row in results
+        ]
+
+        return {
+            "total_pages": (len(recipes) // size) + 1 if len(recipes) > 0 else 1,
+            "page": page,
+            "size": size,
+            "recipes": recipes
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar receitas por embedding: {str(e)}")

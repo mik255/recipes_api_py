@@ -18,10 +18,10 @@ from app.recipes.services.collection_service import update_recipe_to_collection_
 from app.recipes.services.recipe_service import (
     add_recipe_to_collection_service,
     create_recipe_service,
+    embedding_recipes,
     get_all_recipe_service,
-    get_all_recipe_service_meilisearch,
     get_recipe_by_id_service,
-    search_recipes_by_categories,
+    search_recipes_by_embedding,
     update_recipe_service,
     delete_recipe_service,
     set_categories_service,
@@ -134,7 +134,11 @@ def list_recipe_route():
 @router.post("/filter", status_code=200)
 def list_recipe_route(dto: RecipeRequestFilterDTO):
     try:
-        return search_recipes_by_categories(dto)
+        return search_recipes_by_embedding(
+            query=dto.query,
+            page=dto.page,
+            size=dto.size,
+        )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
@@ -153,12 +157,9 @@ def delete_recipe_route(recipe_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
-@router.post("/meilisearch", status_code=200)
-def delete_recipe_route():
-    try:
-        return get_all_recipe_service_meilisearch()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+@router.post("/embeddings", status_code=200)
+def generate_embeddings():
+    return embedding_recipes()
 
 @router.post("/ask_order", status_code=200)
 def ask_order_route(dto: AskRecipeDTO):

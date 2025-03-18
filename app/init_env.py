@@ -29,7 +29,12 @@ env_vars = {
     "MEILI_MASTER_KEY": get_ssm_param("MEILI_MASTER_KEY"),
     "BUCKET_NAME": get_ssm_param("BUCKET_NAME"),
     "OPENAI_API_KEY": get_ssm_param("OPENAI_API_KEY"),
-    "DATABASE_URL": get_ssm_param("DATABASE_URL")
+    "DATABASE_URL": get_ssm_param("DATABASE_URL"),
+    "DB_NAME": get_ssm_param("DB_NAME"),
+    "DB_USER": get_ssm_param("DB_USER"),
+    "DB_PASSWORD": get_ssm_param("DB_PASSWORD"),
+    "DB_HOST": get_ssm_param("DB_HOST"),
+    "DB_PORT": get_ssm_param("DB_PORT"),
 }
 
 # Se estiver em debug, usa localhost para o Meilisearch

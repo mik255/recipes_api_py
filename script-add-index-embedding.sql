@@ -1,0 +1,2 @@
+ALTER TABLE recipe ADD COLUMN embedding VECTOR(1536); -- OpenAI Ada usa 1536 dimensões
+CREATE INDEX idx_embedding ON recipe USING hnsw (embedding vector_l2_ops); -- hnsw é um algoritmo de indexação de vetores

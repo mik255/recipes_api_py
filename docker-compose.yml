@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   app:
     build:
@@ -6,27 +8,6 @@ services:
     container_name: fastapi_app
     ports:
       - "8000:8000"
-    depends_on:
-      meilisearch:
-        condition: service_healthy  # ✅ Aguarda o Meilisearch estar pronto
     restart: always
     env_file:
       - .env
-    
-
-  meilisearch:
-    image: getmeili/meilisearch:v1.6
-    container_name: meilisearch
-    restart: always
-    ports:
-      - "7700:7700"
-    volumes:
-      - meili_data:/meili_data
-    healthcheck:  # ✅ Verifica se o Meilisearch está pronto
-      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  meili_data:
