@@ -2,10 +2,10 @@ import app.init_env as init_env  # ✅ Isso garante que o script execute antes d
 from fastapi import FastAPI
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from app.recipes.controller import recipes_controller, session_controller,collection_controller, users_controller
 
 middleware = [
     Middleware(
+        CORSMiddleware,
         allow_origins=["https://main.darhi3q3t4y0l.amplifyapp.com"],  # Domínio(s) específico(s)
         allow_methods=["*"],
         allow_headers=["*"]
