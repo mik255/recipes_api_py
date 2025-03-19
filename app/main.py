@@ -6,13 +6,12 @@ from starlette.middleware.cors import CORSMiddleware
 middleware = [
     Middleware(
         CORSMiddleware,
-        allow_origins=['*'],
+        allow_origins=["https://main.darhi3q3t4y0l.amplifyapp.com/"],  # Domínio(s) específico(s)
         allow_credentials=True,
-        allow_methods=['*'],
-        allow_headers=['*']
+        allow_methods=["*"],
+        allow_headers=["*"]
     )
 ]
-
 app = FastAPI(middleware=middleware)
 # app.add_middleware(JWTAuthMiddleware, excluded_paths=["/", "/docs", "/openapi.json", "/sessions/login"])
 from app.recipes.controller import recipes_controller, session_controller,collection_controller, users_controller
