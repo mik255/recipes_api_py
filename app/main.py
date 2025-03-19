@@ -7,7 +7,6 @@ middleware = [
     Middleware(
         CORSMiddleware,
         allow_origins=["https://main.darhi3q3t4y0l.amplifyapp.com/"],  # Domínio(s) específico(s)
-        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"]
     )
