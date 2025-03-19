@@ -282,31 +282,33 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
 
         # Paginação
         offset = (page - 1) * size
-
         if not use_embeddings:
             cur.execute("""
                 SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
-                       r.youtube_url, r.property, r.session_id,
-                       ARRAY_AGG(i.url) AS image  -- Agrupa todas as imagens em um array
+                    r.youtube_url, r.property, r.session_id,
+                    ARRAY_AGG(i.url) AS image  -- Agrupa todas as imagens em um array
                 FROM recipe r
                 LEFT JOIN image i ON i.recipe_id = r.id
+                WHERE r.property != 'user'
                 GROUP BY r.id
                 LIMIT %s OFFSET %s
             """, (size, offset))
         else:
             cur.execute("""
                 SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
-                       r.youtube_url, r.property, r.session_id,
-                       ARRAY_AGG(i.url) AS image,  -- Agrupa image
-                       r.embedding <=> %s::vector AS distancia  -- Cosine similarity
+                    r.youtube_url, r.property, r.session_id,
+                    ARRAY_AGG(i.url) AS image,  -- Agrupa image
+                    r.embedding <=> %s::vector AS distancia  -- Cosine similarity
                 FROM recipe r
                 LEFT JOIN image i ON i.recipe_id = r.id
+                WHERE r.property != 'user'
                 GROUP BY r.id, distancia
                 ORDER BY distancia ASC  -- Quanto menor, mais similar
                 LIMIT %s OFFSET %s
             """, (query_embedding, size, offset))
 
         results = cur.fetchall()
+
         cur.close()
         conn.close()
 
