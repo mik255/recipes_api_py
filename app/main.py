@@ -3,19 +3,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI() 
+origins = ['https://main.darhi3q3t4y0l.amplifyapp.com/', '*']
 
 # Configuração do CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir requisições de qualquer origem
+    allow_origins=origins,  # Permitir requisições de qualquer origem
     allow_credentials=False,  # ⚠️ Alterado para False, pois "*" não funciona com credentials=True
     allow_methods=["*"],  # Permitir todos os métodos HTTP
     allow_headers=["*"], 
     expose_headers=["*"]
     # Permitir todos os cabeçalhos
 )
-
-app = FastAPI()
 # app.add_middleware(JWTAuthMiddleware, excluded_paths=["/", "/docs", "/openapi.json", "/sessions/login"])
 from app.recipes.controller import recipes_controller, session_controller,collection_controller, users_controller
 
