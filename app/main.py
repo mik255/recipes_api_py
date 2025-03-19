@@ -1,20 +1,19 @@
 import app.init_env as init_env  # ✅ Isso garante que o script execute antes do FastAPI iniciar
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 
-app = FastAPI() 
-origins = ['https://main.darhi3q3t4y0l.amplifyapp.com/', '*']
+middleware = [
+    Middleware(
+        CORSMiddleware,
+        allow_origins=['*'],
+        allow_credentials=True,
+        allow_methods=['*'],
+        allow_headers=['*']
+    )
+]
 
-# Configuração do CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,  # Permitir requisições de qualquer origem
-    allow_credentials=False,  # ⚠️ Alterado para False, pois "*" não funciona com credentials=True
-    allow_methods=["*"],  # Permitir todos os métodos HTTP
-    allow_headers=["*"], 
-    expose_headers=["*"]
-    # Permitir todos os cabeçalhos
-)
+app = FastAPI(middleware=middleware)
 # app.add_middleware(JWTAuthMiddleware, excluded_paths=["/", "/docs", "/openapi.json", "/sessions/login"])
 from app.recipes.controller import recipes_controller, session_controller,collection_controller, users_controller
 
