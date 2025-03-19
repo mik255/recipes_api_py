@@ -5,6 +5,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI() 
 
+# Configuração do CORS
+app.add_middleware(
+    allow_origins=["*"],  # Permitir requisições de qualquer origem
+    allow_credentials=True,
+    allow_methods=["*"],  # Permitir todos os métodos HTTP
+    allow_headers=["*"],  # Permitir todos os cabeçalhos
+)
 # app.add_middleware(JWTAuthMiddleware, excluded_paths=["/", "/docs", "/openapi.json", "/sessions/login"])
 
 # Registrar o roteador do módulo Recipe
