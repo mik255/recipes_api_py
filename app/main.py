@@ -10,8 +10,12 @@ app.add_middleware(
     allow_origins=["*"],  # Permitir requisições de qualquer origem
     allow_credentials=False,  # ⚠️ Alterado para False, pois "*" não funciona com credentials=True
     allow_methods=["*"],  # Permitir todos os métodos HTTP
-    allow_headers=["*"],  # Permitir todos os cabeçalhos
+    allow_headers=["*"], 
+    expose_headers=["*"]
+    # Permitir todos os cabeçalhos
 )
+
+app = FastAPI()
 # app.add_middleware(JWTAuthMiddleware, excluded_paths=["/", "/docs", "/openapi.json", "/sessions/login"])
 from app.recipes.controller import recipes_controller, session_controller,collection_controller, users_controller
 
