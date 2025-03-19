@@ -1,6 +1,5 @@
 import app.init_env as init_env  # ✅ Isso garante que o script execute antes do FastAPI iniciar
 from fastapi import FastAPI
-from app.recipes.controller import recipes_controller, session_controller,collection_controller, users_controller
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI() 
@@ -14,6 +13,7 @@ app.add_middleware(
     allow_headers=["*"],  # Permitir todos os cabeçalhos
 )
 # app.add_middleware(JWTAuthMiddleware, excluded_paths=["/", "/docs", "/openapi.json", "/sessions/login"])
+from app.recipes.controller import recipes_controller, session_controller,collection_controller, users_controller
 
 # Registrar o roteador do módulo Recipe
 app.include_router(recipes_controller.router, prefix="/recipes", tags=["Recipes"])
