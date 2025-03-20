@@ -27,7 +27,7 @@ def gerar_embedding(texto: str):
 
         response = client.embeddings.create(
             input=texto,
-            model="text-embedding-3-large"  # Substituir por um modelo mais preciso
+            model="text-embedding-ada-002"  # Substituir por um modelo mais preciso
         )
 
         return response.data[0].embedding  # Acessando corretamente os dados da resposta
@@ -234,11 +234,7 @@ def embedding_recipes():
 
             updated_count = 0
             for recipe in recipes:
-                join_ingr = " ".join([ingr.title for ingr in recipe.ingredients])
-                join_prep = " ".join([prep.title for prep in recipe.preparations])
-                texto_embedding = f"Título: {recipe.title}. Descrição: {recipe.description}. Ingredientes: {join_ingr}. Preparo: {join_prep}"
-
-                # Usa um modelo melhor para gerar embedding
+                texto_embedding = formatar_texto_para_embedding(recipe=recipe)
                 embedding = gerar_embedding(texto_embedding)
 
                 if embedding:
@@ -342,3 +338,18 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar receitas por embedding: {str(e)}")
+
+
+def formatar_texto_para_embedding(recipe):
+    """ Prepara o texto da receita para otimizar a geração do embedding """
+    join_ingr = "; ".join([ingr.description for ingr in recipe.ingredients]) if recipe.ingredients else "Sem ingredientes"
+    join_prep = " ".join([prep.description for prep in recipe.preparations]) if recipe.preparations else "Sem modo de preparo"
+    join_categories = "; ".join([cat.name for cat in recipe.categories]) if recipe.categories else "Sem categoria"
+
+    return f"""
+        titulo da receita: {recipe.title}
+        pode ser consumidos: {join_categories}
+        Ingredientes: {join_ingr}
+        Modo de Preparo: {join_prep}
+        Descrição da receita: {recipe.description}
+    """.strip()
