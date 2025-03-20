@@ -263,7 +263,7 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
     Se a query estiver vazia, retorna receitas mais populares ou recentes.
     """
     try:
-        query = 'receitas do tipo: '+ query
+        query = 'receitas do tipo '+ query
         if not query or query.strip() == "":
             use_embeddings = False  # Não gerar embeddings
         else:
