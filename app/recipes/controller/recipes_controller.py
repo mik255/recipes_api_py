@@ -109,9 +109,9 @@ def update_recipe_route(recipe_id: int, dto: RecipeCreateDTO):
         # Se `image_url` for passado, baixa e salva no S3 antes de atualizar a receita
         if dto.images[0].url and dto.download_image == True:
             dto.images[0].url = download_and_upload_image(dto.images[0].url)
-            
-        update_recipe_to_collection_service(recipe_id=dto.id,collection_id=dto.collection_id)
-        return update_recipe_service(recipe_id, dto)
+        if dto.collection_id:
+            update_recipe_to_collection_service(recipe_id=recipe_id,collection_id=dto.collection_id)
+        return update_recipe_service(recipe_id=recipe_id, dto=dto)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
