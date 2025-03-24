@@ -6,8 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 middleware = [
     Middleware(
         CORSMiddleware,
-        allow_origins=["https://main.darhi3q3t4y0l.amplifyapp.com"],  # Domínio(s) específico(s)
-
+        allow_origins=["*"],  # Domínio(s) específico(s)
         allow_methods=["*"],
         allow_headers=["*"]
     )
