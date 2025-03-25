@@ -2,7 +2,7 @@ import os
 import uuid
 import requests
 import boto3
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, Form, HTTPException, UploadFile, File
 from typing import List
 from app.recipes.dtos.ask_recipe_dto import AskRecipeDTO
 from app.recipes.dtos.image_dto import ImageDTO
@@ -48,8 +48,8 @@ s3_client = boto3.client(
 
 router = APIRouter()
 
-def download_and_upload_image(image_url: str) -> str:
-    """Baixa uma imagem de uma URL e salva no S3"""
+def download_and_upload_image(image_url: str, path: str = "") -> str:
+    """Baixa uma imagem de uma URL e salva no S3 no diretório especificado por path"""
     try:
         response = requests.get(image_url, stream=True)
         response.raise_for_status()
@@ -57,36 +57,70 @@ def download_and_upload_image(image_url: str) -> str:
         file_extension = image_url.split(".")[-1].split("?")[0] if "." in image_url.split("/")[-1] else "jpg"
         unique_filename = f"{uuid.uuid4()}.{file_extension}"
 
+        # Concatena o caminho, se fornecido
+        s3_path = f"{path}/{unique_filename}" if path else unique_filename
+
         s3_client.upload_fileobj(
             response.raw,  # Envia diretamente do stream para S3
             AWS_BUCKET_NAME,
-            unique_filename,
+            s3_path,
             ExtraArgs={"ContentType": f"image/{file_extension}"}
         )
 
-        return f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{unique_filename}"
+        return f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_path}"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao baixar e salvar imagem: {str(e)}")
 
 @router.post("/save-image", response_model=ImageDTO, status_code=201)
-async def upload_image_to_s3(image: UploadFile = File(...)) -> ImageDTO:
+async def upload_image_to_s3(
+    image: UploadFile = File(...),
+    path: str = Form("")
+) -> ImageDTO:
     try:
         file_extension = image.filename.split(".")[-1]
-        unique_filename = f"{uuid.uuid4()}.{file_extension}"
+        file_name = image.filename.split(".")[0]
+        unique_filename = f"{file_name}-{uuid.uuid4()}.{file_extension}"
+
+        # Define o caminho no bucket (com subdiretório, se houver)
+        s3_path = f"{path}/{unique_filename}" if path else unique_filename
 
         s3_client.upload_fileobj(
             image.file,
             AWS_BUCKET_NAME,
-            unique_filename,
+            s3_path,
             ExtraArgs={"ContentType": image.content_type}
         )
 
-        image_url = f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{unique_filename}"
+        image_url = f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{s3_path}"
         return ImageDTO(url=image_url)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao fazer upload da imagem para o S3: {str(e)}")
 
+@router.get("/get-ingredients", response_model=List[ImageDTO])
+def get_ingredients_images() -> List[ImageDTO]:
+    try:
+        response = s3_client.list_objects_v2(
+            Bucket=AWS_BUCKET_NAME,
+            Prefix="ingredients/"
+        )
+
+        if "Contents" not in response:
+            return []
+
+        images = []
+        for obj in response["Contents"]:
+            key = obj["Key"]
+            if not key.endswith("/"):  # Ignora 'pastas'
+                url = f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{key}"
+                name = key.split("/")[-1]
+                images.append(ImageDTO(url=url, name=name))
+
+        return images
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao listar imagens de ingredientes: {str(e)}")
+    
 @router.post("/", response_model=RecipeResponseDTO, status_code=201)
 def create_recipe_route(dto: RecipeCreateDTO):
     try:    
