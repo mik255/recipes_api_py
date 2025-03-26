@@ -22,7 +22,8 @@ class Recipe(Base):
     property = Column(String, nullable=True)
     sessions = relationship("Session", back_populates="recipes", lazy="joined")
     collection = relationship("Collection", back_populates="recipes")
-    # Relacionamento com Category via a tabela intermediária
+    macro = relationship("Macro", back_populates="recipe", uselist=False, lazy="joined")
+
     categories = relationship(
         "Category",
         secondary=recipe_categories,

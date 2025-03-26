@@ -15,6 +15,10 @@ def create_session_service(dto: SessionRequestDTO):
             )
         return create_session(db, _session)
 
+def get_recipes_by_session(session_id: int, size: int = 0, limit: int = 5):
+    with next(get_db()) as db:
+        session = db.query(Session).filter(Session.id == session_id).first()
+        return session.recipes[:limit]
 
 def get_sessions() -> list[Session]:
     with next(get_db()) as db:

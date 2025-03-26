@@ -16,6 +16,7 @@ from app.recipes.models.image import Image
 from app.recipes.models.session import Session
 from app.recipes.repository.collection_repository import get_collection_by_id
 from app.recipes.repository.recipe_repository import get_all_recipes, get_recipe_by_id, get_all_sessions
+from sqlalchemy.orm import selectinload
 
 # Configuração da API OpenAI
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -119,9 +120,18 @@ def get_all_recipe_service() -> list[RecipeListResponseDTO]:
         ]
 
 def get_recipe_by_id_service(recipe_id: int) -> dict:
-    """ Busca receita pelo ID """
     with next(get_db()) as db:
-        data = get_recipe_by_id(db, recipe_id)
+        data = db.query(Recipe).options(
+            selectinload(Recipe.images),
+            selectinload(Recipe.ingredients),
+            selectinload(Recipe.preparations),
+            selectinload(Recipe.categories),
+            selectinload(Recipe.macro),
+        ).filter(Recipe.id == recipe_id).first()
+
+        if not data:
+            raise HTTPException(status_code=404, detail="Receita não encontrada.")
+
         response = data.__dict__.copy()
         response['categories'] = [cat.name for cat in data.categories]
     return response

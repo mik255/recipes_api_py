@@ -54,6 +54,16 @@ class IARecipeCreateDTO(BaseModel):
         orm_mode = True
         from_attributes = True
 
+class MacroDTO(BaseModel):
+    id: Optional[int]
+    total_kcal: Optional[float]
+    protein_percent: Optional[float]
+    carb_percent: Optional[float]
+    fat_percent: Optional[float]
+    fiber_percent: Optional[float]
+    recipe_id: Optional[int]
+    class Config:
+        orm_mode = True
 class RecipeResponseDTO(BaseModel):
     id: int | None
     title: str
@@ -68,7 +78,8 @@ class RecipeResponseDTO(BaseModel):
     dificulty: str | None = 'Fácil'
     portions : int | None = 1
     youtube_url: str | None = None
-    property: str | None = 'admin'
+    property: str | None = 'admin',
+    macro: MacroDTO | None = None
     class Config:
         orm_mode = True
 
