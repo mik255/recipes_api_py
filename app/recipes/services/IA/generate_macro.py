@@ -22,8 +22,12 @@ Retorne um JSON com os seguintes campos:
 
 Apenas responda com o JSON. Nenhuma explicação.
 
-Descrição da receita:
-"{description}"
+Titulo da receita:
+"{title}"
+
+Ingredientes:
+"{ingredients}"
+
 """
 
 def popular_macros_para_todas_as_receitas():
@@ -32,10 +36,12 @@ def popular_macros_para_todas_as_receitas():
 
     for recipe in recipes:
         # Skip se já tiver macro associada
-        if recipe.macro:
-            continue
+       # if recipe.macro:
+        #    continue
+       
+        join_ingredients = ", ".join(e.description for e in recipe.ingredients)
 
-        prompt = macro_prompt_template.format(description=recipe.description)
+        prompt = macro_prompt_template.format(title=recipe.title, ingredients=join_ingredients)
 
         try:
             # ✅ Usando o client corretamente

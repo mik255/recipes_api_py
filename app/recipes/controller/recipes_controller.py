@@ -1,4 +1,6 @@
+from io import BytesIO
 import os
+from PIL import Image as PILImage, UnidentifiedImageError
 import uuid
 import requests
 import boto3
@@ -14,6 +16,7 @@ from app.recipes.dtos.recipe_dto import (
     RecipeResponseDTO,
 )
 from app.recipes.services.IA.create_recipe import IA_recipe_creator
+from app.recipes.services.IA.generate_macro import popular_macros_para_todas_as_receitas
 from app.recipes.services.collection_service import update_recipe_to_collection_service
 from app.recipes.services.recipe_service import (
     add_recipe_to_collection_service,
@@ -47,6 +50,14 @@ s3_client = boto3.client(
 )
 
 router = APIRouter()
+
+
+#@router.get("/macros", status_code=200)
+#def run_popular_macros():
+ #    popular_macros_para_todas_as_receitas()
+  #   return {"message": "Macros populadas com sucesso"}
+
+
 
 def download_and_upload_image(image_url: str, path: str = "") -> str:
     """Baixa uma imagem de uma URL e salva no S3 no diretório especificado por path"""
@@ -201,3 +212,72 @@ def ask_order_route(dto: AskRecipeDTO):
         return ask_order_service(dto)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+
+
+# Rota para adicionar uma receita a uma sessão
+SOURCE_PREFIX = ""  # onde estão as imagens originais
+TARGET_PREFIX = "images_resized/"  # onde as convertidas serão salvas
+@router.post("/resize-all-images")
+def resize_and_convert_all_images():
+    try:
+        paginator = s3_client.get_paginator("list_objects_v2")
+        page_iterator = paginator.paginate(Bucket=AWS_BUCKET_NAME, Prefix=SOURCE_PREFIX)
+
+        processed = []
+        errors = []
+
+        for page in page_iterator:
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+
+                if not key.lower().endswith((".jpg", ".jpeg", ".png")):
+                    continue
+
+                try:
+                    # Extrai o nome do arquivo
+                    filename = os.path.basename(key)
+                    name_without_ext = os.path.splitext(filename)[0]
+
+                    # Novo caminho no S3
+                    new_key = f"{TARGET_PREFIX}{name_without_ext}.webp"
+
+                    # Baixa imagem original
+                    img_obj = s3_client.get_object(Bucket=AWS_BUCKET_NAME, Key=key)
+                    img_bytes = img_obj["Body"].read()
+
+                    # Abre e redimensiona
+                    img = PILImage.open(BytesIO(img_bytes)).convert("RGB")
+                    img = img.resize((800, 600), PILImage.Resampling.LANCZOS)
+
+                    # Salva em buffer como WebP
+                    buffer = BytesIO()
+                    img.save(buffer, format="WEBP", quality=85)
+                    buffer.seek(0)
+
+                    # Envia para o novo local no S3
+                    s3_client.upload_fileobj(
+                        buffer,
+                        AWS_BUCKET_NAME,
+                        new_key,
+                        ExtraArgs={"ContentType": "image/webp", "ACL": "public-read"}
+                    )
+
+                    processed.append(new_key)
+
+                except UnidentifiedImageError:
+                    errors.append({"key": key, "error": "Imagem inválida ou corrompida"})
+                except Exception as img_error:
+                    errors.append({"key": key, "error": str(img_error)})
+
+        return {
+            "message": "Processamento finalizado",
+            "total_convertidas": len(processed),
+            "total_erros": len(errors),
+            "imagens_convertidas": processed,
+            "falhas": errors
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
