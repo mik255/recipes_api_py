@@ -17,4 +17,4 @@ class Macro(Base):
     fiber_percent = Column(Float, nullable=False, server_default="0.0")    # Ex: 20%
     fat_percent = Column(Float, nullable=False, server_default="0.0")      # Ex: 20%
 
-    recipe = relationship("Recipe", back_populates="macro",passive_deletes=True)
+    recipe = relationship("Recipe", back_populates="macro")
