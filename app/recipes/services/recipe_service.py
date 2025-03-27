@@ -268,19 +268,18 @@ def embedding_recipes():
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
-    """ 
-    Busca receitas similares a uma consulta (query) usando embeddings e retorna resultados paginados.
-    Se a query estiver vazia, retorna receitas mais populares ou recentes.
+    """
+    Busca receitas similares a uma consulta usando embeddings com paginação real.
     """
     try:
-        query = 'receitas do tipo '+ query
-        if not query or query.strip() == "":
-            use_embeddings = False  # Não gerar embeddings
-        else:
-            use_embeddings = True
+        query = 'receitas do tipo ' + query
+        use_embeddings = bool(query.strip())
+
+        if use_embeddings:
             query_embedding = gerar_embedding(query)
 
-        # Conexão com o banco de dados
+        offset = (page - 1) * size
+
         conn = psycopg2.connect(
             dbname=os.getenv("DB_NAME"),
             user=os.getenv("DB_USER"),
@@ -288,15 +287,20 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
             host=os.getenv("DB_HOST"),
             port=os.getenv("DB_PORT")
         )
+
         cur = conn.cursor()
 
-        # Paginação
-        offset = (page - 1) * size
+        # 1️⃣ Total de registros (sem paginação)
+        cur.execute("SELECT COUNT(*) FROM recipe WHERE property != 'user'")
+        total_count = cur.fetchone()[0]
+        total_pages = (total_count + size - 1) // size
+
+        # 2️⃣ Busca paginada com ou sem embedding
         if not use_embeddings:
             cur.execute("""
                 SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
                     r.youtube_url, r.property, r.session_id,
-                    ARRAY_AGG(i.url) AS image  -- Agrupa todas as imagens em um array
+                    ARRAY_AGG(i.url) AS image
                 FROM recipe r
                 LEFT JOIN image i ON i.recipe_id = r.id
                 WHERE r.property != 'user'
@@ -307,25 +311,20 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
             cur.execute("""
                 SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
                     r.youtube_url, r.property, r.session_id,
-                    ARRAY_AGG(i.url) AS image,  -- Agrupa image
-                    r.embedding <=> %s::vector AS distancia  -- Cosine similarity
+                    ARRAY_AGG(i.url) AS image,
+                    r.embedding <=> %s::vector AS distancia
                 FROM recipe r
                 LEFT JOIN image i ON i.recipe_id = r.id
                 WHERE r.property != 'user'
                 GROUP BY r.id, distancia
-                ORDER BY distancia ASC  -- Quanto menor, mais similar
+                ORDER BY distancia ASC
                 LIMIT %s OFFSET %s
             """, (query_embedding, size, offset))
 
         results = cur.fetchall()
-
         cur.close()
         conn.close()
 
-        if not results:
-            return {"message": "Nenhuma receita encontrada."}
-
-        # Formata os resultados em JSON
         recipes = [
             {
                 "id": row[0],
@@ -338,17 +337,17 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
                 "property": row[7],
                 "session_id": row[8],
                 "tumbnail": row[9][0] if row[9] else None,
-                "similarity_score": round(row[10], 4) if use_embeddings else None  # Retorna score só se for busca por embeddings
+                "similarity_score": round(row[10], 4) if use_embeddings else None
             }
             for row in results
         ]
 
         return {
-            "total_pages": (len(recipes) // size) + 1 if len(recipes) > 0 else 1,
+            "total_pages": total_pages,
             "page": page,
             "size": size,
             "recipes": recipes
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao buscar receitas por embedding: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar receitas: {str(e)}")
