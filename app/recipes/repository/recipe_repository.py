@@ -20,7 +20,7 @@ from sqlalchemy.orm import selectinload, load_only, joinedload
 def get_all_sessions(db: Session):
     sessions = (
         db.query(SessionModel)
-        .filter(SessionModel.id != 5)
+        .filter(SessionModel.id != 6)
         .options(
             selectinload(SessionModel.recipes)
             .options(
@@ -38,6 +38,6 @@ def get_all_sessions(db: Session):
 
     for session in sessions:
         # Limita em memória após carregamento otimizado
-        session.recipes = session.recipes[:5]
+        session.recipes = session.recipes[:6]
 
     return sessions
