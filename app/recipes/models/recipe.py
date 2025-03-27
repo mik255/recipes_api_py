@@ -2,6 +2,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String,Float
 from sqlalchemy.orm import relationship
 from app.database.config import Base
 from app.recipes.models.recipe_category import recipe_categories
+from sqlalchemy.dialects.postgresql import ARRAY
 
 class Recipe(Base):
     __tablename__ = "recipe"
@@ -23,6 +24,7 @@ class Recipe(Base):
     sessions = relationship("Session", back_populates="recipes", lazy="selectin")
     collection = relationship("Collection", back_populates="recipes")
     macro = relationship("Macro", back_populates="recipe", uselist=False, lazy="selectin")
+    embedding = Column(ARRAY(Float), nullable=True)
 
     categories = relationship(
         "Category",
