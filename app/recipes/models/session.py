@@ -10,6 +10,6 @@ class Session(Base):
     description = Column(String, nullable=False)
     type = Column(String, nullable=False)
     recipeType = Column(String, nullable=False)
-    recipes = relationship("Recipe", back_populates="sessions", lazy="joined")
+    recipes = relationship("Recipe", back_populates="sessions", lazy="selectin")
     
     

@@ -7,9 +7,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     google_id = Column(String, unique=True, index=True)
-    email = Column(String, index=True)
-    photo_url = Column(String, index=True)
-    name = Column(String, index=True)
+    email = Column(String, index=False)
+    photo_url = Column(String, index=False)
+    name = Column(String, index=False)
 
     collections = relationship("Collection", back_populates="user")
 

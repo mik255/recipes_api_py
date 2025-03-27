@@ -6,7 +6,7 @@ class Plan(Base):
     __tablename__ = "plan"  # Nome correto da tabela
 
     id = Column(Integer, primary_key=True, index=True)
-    plan_id = Column(String, unique=True, index=True)
+    plan_id = Column(String, unique=True, index=False)
     name = Column(String, index=True)
     description = Column(String, index=True)
     amount = Column(Float, index=True)

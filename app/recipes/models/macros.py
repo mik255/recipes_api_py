@@ -7,7 +7,7 @@ class Macro(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    recipe_id = Column(Integer, ForeignKey("recipe.id"), nullable=False)
+    recipe_id = Column(Integer, ForeignKey("recipe.id"), nullable=False,index=True)
 
     total_kcal = Column(Float, nullable=False, server_default="0.0")
     percent_kcal = Column(Float, nullable=False, server_default="0.0")  # Ex: 80% do total diário

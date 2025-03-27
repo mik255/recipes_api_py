@@ -6,10 +6,10 @@ class Ingredient(Base):
     __tablename__ = "ingredient"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
+    title = Column(String, index=False)
     description = Column(String, nullable=False, server_default="Sem descrição")
     # Chave estrangeira para a receita
-    recipe_id = Column(Integer, ForeignKey("recipe.id"))
+    recipe_id = Column(Integer, ForeignKey("recipe.id"),index=True)
 
     # Relacionamento inverso
-    recipe = relationship("Recipe", back_populates="ingredients",lazy="joined")
+    recipe = relationship("Recipe", back_populates="ingredients",lazy="selectin")
