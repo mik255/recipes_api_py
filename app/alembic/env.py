@@ -3,6 +3,7 @@ import sys
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config, create_engine, pool
 from alembic import context
+from pgvector.sqlalchemy import Vector  # ✅ importa o tipo
 
 # 🔧 Ajusta o caminho para garantir que os módulos sejam encontrados corretamente
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
