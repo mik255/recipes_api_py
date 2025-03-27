@@ -12,12 +12,16 @@ def get_all_sessions(db: Session):
     return (
         db.query(SessionModel)
         .options(
-    selectinload(SessionModel.recipes)
-      .selectinload(Recipe.images)
-      .selectinload(Recipe.ingredients)
-      .selectinload(Recipe.preparations)
-      .selectinload(Recipe.categories)
-)
+            selectinload(SessionModel.recipes)
+                .load_only(
+                    Recipe.id,
+                    Recipe.title,
+                    Recipe.description,
+                    Recipe.tumbnail,
+                    Recipe.property
+                )
+        )
+        .all()
     )
 
 def add_recipe_to_session(db: Session, session_id: int, recipe_id: int):

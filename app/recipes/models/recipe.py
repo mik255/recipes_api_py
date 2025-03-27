@@ -25,9 +25,8 @@ class Recipe(Base):
     macro = relationship(
         "Macro",
         back_populates="recipe",
-        uselist=False,
         lazy="selectin",
-        cascade="all, delete-orphan"
+        cascade="all",
     )
     categories = relationship(
         "Category",
