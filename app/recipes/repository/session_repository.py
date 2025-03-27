@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.recipes.models.session import Session as SessionModel
 from app.recipes.models.recipe import Recipe
-from sqlalchemy.orm import Session, selectinload,load_only
+from sqlalchemy.orm import Session, selectinload
 def create_session(db: Session, model: SessionModel):
     db.add(model)
     db.commit()
@@ -12,11 +12,12 @@ def get_all_sessions(db: Session):
     return (
         db.query(SessionModel)
         .options(
-            load_only(SessionModel.id, SessionModel.title, SessionModel.description, SessionModel.type, SessionModel.recipeType),
-            selectinload(SessionModel.recipes)
-                .load_only(Recipe.id, Recipe.title, Recipe.description, Recipe.property)
-        )
-        .all()
+    selectinload(SessionModel.recipes)
+      .selectinload(Recipe.images)
+      .selectinload(Recipe.ingredients)
+      .selectinload(Recipe.preparations)
+      .selectinload(Recipe.categories)
+)
     )
 
 def add_recipe_to_session(db: Session, session_id: int, recipe_id: int):
