@@ -22,7 +22,7 @@ class Recipe(Base):
     property = Column(String, nullable=True)
     sessions = relationship("Session", back_populates="recipes", lazy="selectin")
     collection = relationship("Collection", back_populates="recipes")
-    macro = relationship("Macro", back_populates="recipe", uselist=False, lazy="selectin")
+    macro = relationship("Macro", back_populates="recipe", uselist=False, lazy="selectin",cascade="all, delete-orphan"),
 
     categories = relationship(
         "Category",
