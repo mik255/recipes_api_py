@@ -11,9 +11,9 @@ class Collection(Base):
     icon_name = Column(String, nullable=False)
 
     # ForeignKey para indicar que cada coleção pertence a um único usuário
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
-    recipes = relationship("Recipe", back_populates="collection", lazy="joined")
-    user = relationship("User", back_populates="collections", lazy="joined")
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False, index=True)
+    recipes = relationship("Recipe", back_populates="collection", lazy="select")
+    user = relationship("User", back_populates="collections", lazy="select")
 
 
 

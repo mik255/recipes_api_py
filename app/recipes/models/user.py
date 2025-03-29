@@ -12,5 +12,5 @@ class User(Base):
     name = Column(String, index=False)
 
     collections = relationship("Collection", back_populates="user")
-
+    orders = relationship("Order", back_populates="user")
 

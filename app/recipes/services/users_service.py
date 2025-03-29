@@ -20,3 +20,10 @@ def verify_user_exists(google_id: str):
         if user:
             return user
         return False
+    
+def get_user_by_id(user_id: int):
+    with next(get_db()) as db:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            return user
+        return False

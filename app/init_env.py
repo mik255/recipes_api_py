@@ -35,6 +35,7 @@ env_vars = {
     "DB_PASSWORD": get_ssm_param("DB_PASSWORD"),
     "DB_HOST": get_ssm_param("DB_HOST"),
     "DB_PORT": get_ssm_param("DB_PORT"),
+    "MP_ACCESS_TOKEN": get_ssm_param("MP_ACCESS_TOKEN"),
 }
 
 # Se estiver em debug, usa localhost para o Meilisearch

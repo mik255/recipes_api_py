@@ -52,10 +52,10 @@ s3_client = boto3.client(
 router = APIRouter()
 
 
-#@router.get("/macros", status_code=200)
-#def run_popular_macros():
- #    popular_macros_para_todas_as_receitas()
-  #   return {"message": "Macros populadas com sucesso"}
+@router.get("/macros", status_code=200)
+def run_popular_macros():
+     popular_macros_para_todas_as_receitas()
+     return {"message": "Macros populadas com sucesso"}
 
 
 
