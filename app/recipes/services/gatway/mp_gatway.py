@@ -64,7 +64,6 @@ def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
         db.commit()
         db.refresh(order)
         
-        print("order criado com sucesso:", payment.id)
 
         # Agora tudo ainda está dentro da mesma sessão
         data = {
