@@ -25,9 +25,16 @@ def create_recipe_route(dto: dict):
 
 
 @router.post("/notification", status_code=200)
-def payment_notification_route(dto: dict = Body(...), id: Optional[str] = Query(None), topic: Optional[str] = Query(None)):
+def payment_notification_route(
+    dto: dict = Body({}),
+    id: Optional[str] = Query(None),
+    topic: Optional[str] = Query(None)
+):
+    """
+    Recebe a notificação do Mercado Pago e atualiza o status do pedido.
+    """
     try:
-        dados = dto or {"id": id, "topic": topic}  # Captura os dados corretamente
+        dados = dto if dto else {"id": id, "topic": topic}
         return processar_webhook(dados)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
