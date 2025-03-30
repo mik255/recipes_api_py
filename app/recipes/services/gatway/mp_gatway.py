@@ -130,19 +130,13 @@ def atualizar_pagamento(payment_id, status):
 def processar_webhook(payload):
     print("Payload recebido:", payload)
     if payload.get("resource") is not None:
-        payment_id = payload.get("resource").get("id")
-        return atualizar_pagamento(payment_id, status)
+        return 'Webhook recebido com sucesso'
     
     payment_id = payload.get("data").get("id")
     status = payload.get("action")
 
-    if status in "payment.approved":
-        try:
-            return atualizar_pagamento(payment_id, status)
-        except Exception as e:
-            raise Exception(f"Erro ao atualizar o pedido: {str(e)}")
-    else:
-        return (f"Pagamento não aprovado. Status: {status}")
+    return atualizar_pagamento(payment_id, status)
+  
     
 
 def isActive(user: User):
