@@ -29,7 +29,8 @@ def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
     db = next(get_db())
 
     try:
-        order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
+        if protocol:
+            order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
 
         if not plan_id:
             return {"message": "Plan ID is required."}
@@ -62,6 +63,8 @@ def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
         order.payments.append(payment)
         db.commit()
         db.refresh(order)
+        
+        print("order criado com sucesso:", payment.id)
 
         # Agora tudo ainda está dentro da mesma sessão
         data = {
