@@ -24,7 +24,7 @@ def create_recipe_route(dto: dict):
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
-@router.post("/notification", status_code=200)
+@router.post("/notification/", status_code=200)
 def payment_notification_route(
     dto: dict = Body({}),
     id: Optional[str] = Query(None),
