@@ -119,6 +119,23 @@ def atualizar_pagamento(payment_id, status):
                 payment.order.status = "active"
                 db.commit()
                 db.refresh(payment.order)
+            if status == "payment.created":
+                payment.order.status = "created"
+                db.commit()
+                db.refresh(payment.order)
+            if status == "payment.cancelled":
+                payment.order.status = "cancelled"
+                db.commit()
+                db.refresh(payment.order)
+            if status == "payment.refunded":
+                payment.order.status = "refunded"
+                db.commit()
+                db.refresh(payment.order)
+            if status == "payment.in_process":
+                payment.order.status = "in_process"
+                db.commit()
+                db.refresh(payment.order)
+                
             return f"pagamento {payment.id} foi atualizado para o status: {status}."
         else:
             raise Exception("Pedido não encontrado para o payment_id fornecido.")
@@ -126,16 +143,14 @@ def atualizar_pagamento(payment_id, status):
 # Função que será chamada pelo webhook para atualizar o pedido no banco de dados
 def processar_webhook(payload):
     print("Payload recebido:", payload)
+    if payload.get("data") is None:
+        payment_id = payload.get("resource")
+        return 'Webhook recebido com sucesso'
+    
     payment_id = payload.get("data").get("id")
     status = payload.get("action")
 
-    if status in "payment.approved":
-        try:
-            return atualizar_pagamento(payment_id, status)
-        except Exception as e:
-            raise Exception(f"Erro ao atualizar o pedido: {str(e)}")
-    else:
-        return (f"Pagamento não aprovado. Status: {status}")
+    return atualizar_pagamento(payment_id, status)
     
 
 def isActive(user: User):
