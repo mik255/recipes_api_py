@@ -29,8 +29,7 @@ def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
     db = next(get_db())
 
     try:
-        if protocol:
-            order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
+        order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
 
         if not plan_id:
             return {"message": "Plan ID is required."}
@@ -63,7 +62,6 @@ def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
         order.payments.append(payment)
         db.commit()
         db.refresh(order)
-        
 
         # Agora tudo ainda está dentro da mesma sessão
         data = {
@@ -143,7 +141,7 @@ def atualizar_pagamento(payment_id, status):
                 db.commit()
                 db.refresh(payment.order)
                 
-            return f"pagamento {payment.id} foi atualizado para o status: {payment.status}."
+            return f"pagamento {payment.id} foi atualizado para o status: {status}."
         else:
             raise Exception("Pedido não encontrado para o payment_id fornecido.")
 
