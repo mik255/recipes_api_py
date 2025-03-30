@@ -1,7 +1,7 @@
 # Inicializando o ambiente antes do FastAPI iniciar
 import app.init_env as init_env  # ✅ Isso garante que o script execute antes do FastAPI iniciar
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 
@@ -16,7 +16,7 @@ middleware = [
 ]
 
 # Instanciando a aplicação FastAPI com middleware
-app = FastAPI(middleware=middleware)
+app = FastAPI(middleware=middleware, root_path="/", docs_url="/docs", redoc_url="/redoc", strip_slashes=False)
 
 # Importando os controladores (controllers) dos módulos
 from app.recipes.controller import (
@@ -39,3 +39,10 @@ app.include_router(mp_getway_controller.router, prefix="/payment", tags=["Paymen
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Recipe API"}
+
+# Debug: Log de todas as requisições para verificar redirecionamentos
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    print(f"Recebendo requisição: {request.method} {request.url}")
+    response = await call_next(request)
+    return response
