@@ -13,24 +13,22 @@ from app.recipes.models.user import User
 ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 MERCHANT_URL = 'https://api.mercadopago.com/v1/payments'
 
-
 def gerar_identificador():
     return f"REF{uuid.uuid4().hex[:6].upper()}"
 
-
+# Função para criar um pagamento Pix no Mercado Pago
 def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
-   
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {ACCESS_TOKEN}',
         'X-Idempotency-Key': str(uuid.uuid4())
-        }
+    }
+
     # Inicia a sessão manualmente (melhor forma fora do contexto FastAPI)
     db = next(get_db())
 
     try:
-        if protocol is not None:
-            order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
+        order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
 
         if not plan_id:
             return {"message": "Plan ID is required."}
@@ -114,35 +112,16 @@ def atualizar_pagamento(payment_id, status):
             payment.status = status
             db.commit()
             db.refresh(payment)
-            if status == "payment.approved":
-                payment.order.last_payment = datetime.utcnow()
-                payment.order.expired_at = payment.order.expired_at + timedelta(days=30)
-                payment.status = "approved"
-                payment.order.status = "active"
-                db.commit()
-                db.refresh(payment.order)
-            if status == "payment.created":
-                payment.order.status = "created"
-                db.commit()
-                db.refresh(payment.order)
-            if status == "payment.cancelled":
-                payment.order.status = "cancelled"
-                db.commit()
-                db.refresh(payment.order)
-            if status == "payment.refunded":
-                payment.order.status = "refunded"
-                db.commit()
-                db.refresh(payment.order)
             if status == "payment.updated":
-                mp_payment = get_payment_by_id(payment.getway_payment_id)
-                payment.status = mp_payment.get('status')
-                payment.order.status = "active"
-                payment.order.last_payment = datetime.utcnow()
-                payment.order.expired_at = datetime.utcnow() + timedelta(days=30)
-
-                db.commit()
-                db.refresh(payment.order)
-                
+                mp_payment = get_payment_by_id(payment_id)
+                if mp_payment.get("status") == "approved":
+                    payment.order.last_payment = datetime.utcnow()
+                    payment.order.expired_at = payment.order.expired_at + timedelta(days=30)
+                    payment.status = "approved"
+                    payment.order.status = "active"
+                    db.commit()
+                    db.refresh(payment.order)
+            
             return f"pagamento {payment.id} foi atualizado para o status: {status}."
         else:
             raise Exception("Pedido não encontrado para o payment_id fornecido.")
@@ -150,14 +129,20 @@ def atualizar_pagamento(payment_id, status):
 # Função que será chamada pelo webhook para atualizar o pedido no banco de dados
 def processar_webhook(payload):
     print("Payload recebido:", payload)
-    if payload.get("data") is None:
-        payment_id = payload.get("resource")
-        return 'Webhook recebido com sucesso'
+    if payload.get("resource") is not None:
+        payment_id = payload.get("resource").get("id")
+        return atualizar_pagamento(payment_id, status)
     
     payment_id = payload.get("data").get("id")
     status = payload.get("action")
 
-    return atualizar_pagamento(payment_id, status)
+    if status in "payment.approved":
+        try:
+            return atualizar_pagamento(payment_id, status)
+        except Exception as e:
+            raise Exception(f"Erro ao atualizar o pedido: {str(e)}")
+    else:
+        return (f"Pagamento não aprovado. Status: {status}")
     
 
 def isActive(user: User):
@@ -200,7 +185,6 @@ def get_plans():
             for plan in plans
         ]
 
-    
 
 def get_payment_by_id(payment_id):
         endpoint = f"{MERCHANT_URL}/{payment_id}"
