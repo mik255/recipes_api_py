@@ -13,23 +13,24 @@ from app.recipes.models.user import User
 ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 MERCHANT_URL = 'https://api.mercadopago.com/v1/payments'
 
-headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {ACCESS_TOKEN}',
-        'X-Idempotency-Key': str(uuid.uuid4())
-    }
+
 def gerar_identificador():
     return f"REF{uuid.uuid4().hex[:6].upper()}"
 
 
 def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
    
-
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {ACCESS_TOKEN}',
+        'X-Idempotency-Key': str(uuid.uuid4())
+        }
     # Inicia a sessão manualmente (melhor forma fora do contexto FastAPI)
     db = next(get_db())
 
     try:
-        order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
+        if protocol is not None:
+            order = db.query(Order).filter(Order.protocol == protocol).first() if protocol else None
 
         if not plan_id:
             return {"message": "Plan ID is required."}
@@ -138,6 +139,7 @@ def atualizar_pagamento(payment_id, status):
                 payment.order.status = "active"
                 payment.order.last_payment = datetime.utcnow()
                 payment.order.expired_at = datetime.utcnow() + timedelta(days=30)
+
                 db.commit()
                 db.refresh(payment.order)
                 
@@ -203,6 +205,11 @@ def get_plans():
 def get_payment_by_id(payment_id):
         endpoint = f"{MERCHANT_URL}/{payment_id}"
         try:
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {ACCESS_TOKEN}',
+                    'X-Idempotency-Key': str(uuid.uuid4())
+                     }
             response = requests.get(endpoint, headers=headers, json={})
             response_json = response.json()
         except Exception as e:
