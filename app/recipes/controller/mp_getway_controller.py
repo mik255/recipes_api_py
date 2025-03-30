@@ -1,4 +1,6 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi.params import Body, Query
 from app.recipes.services.gatway.mp_gatway import criar_pagamento_pix, get_plans, isActive, processar_webhook
 from app.recipes.services.users_service import create_user_service, get_user_by_id,verify_user_exists
 
@@ -23,15 +25,10 @@ def create_recipe_route(dto: dict):
 
 
 @router.post("/notification", status_code=200)
-def payment_notification_route(dto: dict):
-    """
-    Recebe a notificação do Mercado Pago e atualiza o status do pedido.
-    """
+def payment_notification_route(dto: dict = Body(...), id: Optional[str] = Query(None), topic: Optional[str] = Query(None)):
     try:
-        # Aqui você deve implementar a lógica para atualizar o status do pedido
-        # com base na notificação recebida do Mercado Pago.
-        # Exemplo: atualizar_order(dto['id'], dto['status'])
-        return processar_webhook(dto)
+        dados = dto or {"id": id, "topic": topic}  # Captura os dados corretamente
+        return processar_webhook(dados)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     
