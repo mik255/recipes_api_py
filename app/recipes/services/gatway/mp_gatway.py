@@ -13,16 +13,17 @@ from app.recipes.models.user import User
 ACCESS_TOKEN = os.getenv("MP_ACCESS_TOKEN")
 MERCHANT_URL = 'https://api.mercadopago.com/v1/payments'
 
-def gerar_identificador():
-    return f"REF{uuid.uuid4().hex[:6].upper()}"
-
-# Função para criar um pagamento Pix no Mercado Pago
-def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
-    headers = {
+headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {ACCESS_TOKEN}',
         'X-Idempotency-Key': str(uuid.uuid4())
     }
+def gerar_identificador():
+    return f"REF{uuid.uuid4().hex[:6].upper()}"
+
+
+def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
+   
 
     # Inicia a sessão manualmente (melhor forma fora do contexto FastAPI)
     db = next(get_db())
@@ -131,12 +132,16 @@ def atualizar_pagamento(payment_id, status):
                 payment.order.status = "refunded"
                 db.commit()
                 db.refresh(payment.order)
-            if status == "payment.in_process":
-                payment.order.status = "in_process"
+            if status == "payment.updated":
+                mp_payment = get_payment_by_id(payment.getway_payment_id)
+                payment.status = mp_payment.get('status')
+                payment.order.status = "active"
+                payment.order.last_payment = datetime.utcnow()
+                payment.order.expired_at = datetime.utcnow() + timedelta(days=30)
                 db.commit()
                 db.refresh(payment.order)
                 
-            return f"pagamento {payment.id} foi atualizado para o status: {status}."
+            return f"pagamento {payment.id} foi atualizado para o status: {payment.status}."
         else:
             raise Exception("Pedido não encontrado para o payment_id fornecido.")
 
@@ -194,3 +199,12 @@ def get_plans():
         ]
 
     
+
+def get_payment_by_id(payment_id):
+        endpoint = f"{MERCHANT_URL}/{payment_id}"
+        try:
+            response = requests.get(endpoint, headers=headers, json={})
+            response_json = response.json()
+        except Exception as e:
+            raise Exception(f"Erro ao obter pagamento: {str(e)}")
+        return response_json
