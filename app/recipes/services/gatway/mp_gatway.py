@@ -66,7 +66,7 @@ def criar_pagamento_pix(user: User, protocol: str = None, plan_id: int = None):
         data = {
             "transaction_amount": plan.amount,
             "payment_method_id": "pix",
-            "notification_url": "https://api.mikael.dev.br/payment/notification",
+            "notification_url": "https://api.mikael.dev.br/payment/notification/",
             "external_reference": protocol,
             "payer": {
                 "email": user.email,
