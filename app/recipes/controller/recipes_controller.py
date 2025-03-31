@@ -23,6 +23,7 @@ from app.recipes.services.recipe_service import (
     create_recipe_service,
     embedding_recipes,
     get_all_recipe_service,
+    get_issues_recipes,
     get_recipe_by_id_service,
     search_recipes_by_embedding,
     update_recipe_service,
@@ -281,3 +282,10 @@ def resize_and_convert_all_images():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/fix/issues", status_code=200)
+def get_issues_recipes_route():
+    try:
+        return get_issues_recipes()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

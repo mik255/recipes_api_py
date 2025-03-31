@@ -215,6 +215,39 @@ def update_recipe_to_session_service(session_id: int, recipe_id: int):
         db.refresh(session)
         return session
 
+def get_issues_recipes():
+    """Busca receitas com problemas:
+    - Sem imagem
+    - Sem ingredientes ou com ingrediente.title vazio, nulo ou sem 'https'
+    - Com description vazia ou nula
+    """
+    with next(get_db()) as db:
+        recipes = db.query(Recipe).options(
+            selectinload(Recipe.images),
+            selectinload(Recipe.ingredients)
+        ).all()
+
+        issues = []
+        for recipe in recipes:
+            has_invalid_ingredient = any(
+                not ingredient.title or "https" not in ingredient.title
+                for ingredient in recipe.ingredients
+            )
+
+            if not recipe.images or not recipe.ingredients or has_invalid_ingredient or not recipe.description:
+                issues.append({
+                    "id": recipe.id,
+                    "title": recipe.title,
+                    "description": recipe.description if recipe.description else "",
+                    "tumbnail": recipe.images[0].url if recipe.images else "",  # Pega a primeira imagem, se existir
+                    "property": recipe.property if hasattr(recipe, "property") else "admin"  # Garante que "property" exista
+                })
+
+        return issues  # Retorna uma lista diretamente
+
+
+
+
 def ask_order_service(dto: AskRecipeDTO):
     """ Serviço para criar pedidos de receitas personalizadas """
     with next(get_db()) as db:
