@@ -5,7 +5,7 @@ from typing import List
 from app.recipes.dtos.recipe_dto import RecipeCreateDTO, RecipeListResponseDTO, RecipeResponseDTO
 from app.recipes.dtos.session_dto import SessionRequestDTO, SessionResponseDTO
 from app.recipes.models.recipe import Recipe
-from app.recipes.services.session_service import create_session_service, get_recipes_by_session, get_sessions, add_recipe_to_session_service
+from app.recipes.services.session_service import create_session_service, get_recipes_by_session, get_recipes_by_session_id, get_sessions, add_recipe_to_session_service
 
 
 
@@ -50,6 +50,10 @@ def get_session():
 @router.get("/{session_id}/recipes")
 def get_recipes(session_id: int, size: int = 0, limit: int = 5):
     return get_recipes_by_session(session_id, size, limit)
+
+@router.get("/recipes/{session_id}")
+def get_recipes(session_id: int):
+    return get_recipes_by_session_id(session_id)
 # add recipe to session
 @router.put("/{session_id}/add_recipe/{recipe_id}", status_code=200)
 def add_recipe_to_session(session_id: int, recipe_id: int):

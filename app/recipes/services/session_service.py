@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from app.database.dependences import get_db
 from app.recipes.dtos.session_dto import SessionRequestDTO
 from app.recipes.models.session import Session
@@ -19,6 +20,32 @@ def get_recipes_by_session(session_id: int, size: int = 0, limit: int = 5):
     with next(get_db()) as db:
         session = db.query(Session).filter(Session.id == session_id).first()
         return session.recipes[:limit]
+    
+def get_recipes_by_session_id(session_id: int):
+    with next(get_db()) as db:
+        session = db.query(Session).filter(Session.id == session_id).first()
+        if session is None:
+            raise HTTPException(status_code=404, detail="Sessão não encontrada")
+
+        return {
+            "id": session.id,
+            "title": session.title,
+            "description": session.description,
+            "type": session.type,
+            "recipetype": session.recipeType,
+            "recipes": [
+                {
+                    "id": recipe.id,
+                    "title": recipe.title,
+                    "description": recipe.description,
+                    "tumbnail": recipe.images[0].url if recipe.images else None,
+                    "preparation_time": int(recipe.preparation_time) if recipe.preparation_time is not None else 0
+                    
+                    # adicione mais campos aqui se quiser
+                }
+                for recipe in session.recipes
+            ],
+        }
 
 def get_sessions() -> list[Session]:
     with next(get_db()) as db:
