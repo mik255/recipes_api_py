@@ -55,7 +55,7 @@ def isActive_route(user_id: int = Header(..., alias="X-User-Id")):
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     
     
-@router.get("/plans", status_code=200)
+@router.get("/plans/", status_code=200)
 def get_plans_route():
     """
     Verifica se o usuário está ativo.
