@@ -39,6 +39,4 @@ def list_posts_service(page: int):
 def get_post_by_user_id_service(user_id: int):
     with next(get_db()) as db:
         post = get_posts_by_user_id(db, user_id)
-        if post:
-            return post
-        return False
+        return post

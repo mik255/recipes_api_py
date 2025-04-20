@@ -159,7 +159,8 @@ def get_posts_by_user_id(db, user_id: int):
         .filter(Post.user_id == user_id)
         .all()
     )
-
+    if not results:
+        return []
     posts = [
         _build_post_response_with_lists(post)
         for post in results
