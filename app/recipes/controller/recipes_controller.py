@@ -4,7 +4,7 @@ from PIL import Image as PILImage, UnidentifiedImageError
 import uuid
 import requests
 import boto3
-from fastapi import APIRouter, Form, HTTPException, UploadFile, File
+from fastapi import APIRouter, Form, HTTPException, Header, UploadFile, File
 from typing import List
 from app.recipes.dtos.ask_recipe_dto import AskRecipeDTO
 from app.recipes.dtos.image_dto import ImageDTO
@@ -25,6 +25,7 @@ from app.recipes.services.recipe_service import (
     get_all_recipe_service,
     get_issues_recipes,
     get_recipe_by_id_service,
+    get_recipes_by_user_id,
     search_recipes_by_embedding,
     update_recipe_service,
     delete_recipe_service,
@@ -134,13 +135,13 @@ def get_ingredients_images() -> List[ImageDTO]:
         raise HTTPException(status_code=500, detail=f"Erro ao listar imagens de ingredientes: {str(e)}")
     
 @router.post("/", response_model=RecipeResponseDTO, status_code=201)
-def create_recipe_route(dto: RecipeCreateDTO):
+def create_recipe_route(dto: RecipeCreateDTO,user_id: int = Header(..., alias="X-User-Id")):
     try:    
         # Se `image_url` for passado, baixa e salva no S3 antes de criar a receita
         if dto.images[0].url and dto.download_image == True:
             dto.images[0].url = download_and_upload_image(dto.images[0].url)
 
-        recipe = create_recipe_service(dto)
+        recipe = create_recipe_service(dto, user_id=user_id)
         if dto.collection_id:
             add_recipe_to_collection_service(recipe_id=recipe.id, collection_id=dto.collection_id)
         add_recipe_to_session_service(session_id=dto.session_id, recipe_id=recipe.id)
@@ -287,5 +288,13 @@ def resize_and_convert_all_images():
 def get_issues_recipes_route():
     try:
         return get_issues_recipes()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    
+
+@router.get("/users/{user_id}", status_code=200)
+def get_user_recipes_route(user_id: int):
+    try:
+        return get_recipes_by_user_id(user_id=user_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

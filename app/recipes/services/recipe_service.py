@@ -37,12 +37,13 @@ def gerar_embedding(texto: str):
         return None
 
 
-def create_recipe_service(recipe_dto: RecipeCreateDTO) -> Recipe:
+def create_recipe_service(recipe_dto: RecipeCreateDTO,user_id:int) -> Recipe:
     """ Cria uma receita, gera embedding e salva no PostgreSQL """
     db = next(get_db())
 
     new_recipe = Recipe(
         title=recipe_dto.title,
+        user_id=user_id,
         description=recipe_dto.description,
         session_id=recipe_dto.session_id,
         preparation_time=recipe_dto.preparation_time,
@@ -384,3 +385,20 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao buscar receitas: {str(e)}")
+
+def get_recipes_by_user_id(user_id: int):
+    """ Busca receitas de um usuário específico """
+    with next(get_db()) as db:
+        recipes = db.query(Recipe).filter(Recipe.user_id == user_id).all()
+        if not recipes:
+            raise HTTPException(status_code=404, detail="Nenhuma receita encontrada para este usuário.")
+        return [
+            RecipeListResponseDTO(
+                id=recipe.id,
+                title=recipe.title,
+                description=recipe.description,
+                tumbnail=recipe.images[0].url if recipe.images else None,
+                property=recipe.property
+            )
+            for recipe in recipes
+        ]
