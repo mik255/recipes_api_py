@@ -15,6 +15,7 @@ class UserPostDTO(BaseModel):
     id: int
     name: str
     photo_url: Optional[str] = None
+    creator_nick_name: Optional[str] = None
 
     class Config:
         orm_mode = True
