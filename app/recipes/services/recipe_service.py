@@ -391,7 +391,7 @@ def get_recipes_by_user_id(user_id: int):
     with next(get_db()) as db:
         recipes = db.query(Recipe).filter(Recipe.user_id == user_id).all()
         if not recipes:
-            raise HTTPException(status_code=404, detail="Nenhuma receita encontrada para este usuário.")
+            return []
         return [
             RecipeListResponseDTO(
                 id=recipe.id,
