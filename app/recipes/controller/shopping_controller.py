@@ -19,7 +19,7 @@ def create_recipe_route(dto: PostShoppingListRequestDTO,user_id: int = Header(..
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     
 
-@router.get("/list/", response_model=List[ShoppingListResponseDTO], status_code=200)
+@router.get("/list", response_model=List[ShoppingListResponseDTO], status_code=200)
 def get_shopping_list_route(user_id: int = Header(..., alias="X-User-Id")):
     try:
         return get_shopping_list_service(user_id)
