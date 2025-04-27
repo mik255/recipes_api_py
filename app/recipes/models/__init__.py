@@ -17,3 +17,4 @@ from .post import Post
 from .like import Like
 from .follow import Follow
 from .midia import Midia
+from .shopping_list import ShoppingList

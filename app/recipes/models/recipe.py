@@ -53,3 +53,11 @@ class Recipe(Base):
         uselist=False,
         lazy="joined"
     )
+    
+    shopping_lists = relationship(
+        "ShoppingList",
+        back_populates="recipe",
+        lazy="selectin"
+    )
+    
+

@@ -23,3 +23,4 @@ class User(Base):
     creator_nick_name = Column(String, index=True,nullable=True)  # Adicionei um índice aqui, caso você precise buscar usuários pelo nome do criador
     creator_start_at = Column(DateTime(timezone=True), nullable=True)
     recipes = relationship("Recipe", back_populates="user")
+    shopping_lists = relationship("ShoppingList", back_populates="user")

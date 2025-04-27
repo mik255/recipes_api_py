@@ -3,6 +3,7 @@ from typing import List
 from fastapi import HTTPException
 import openai
 import psycopg2
+from sqlalchemy import text
 
 from app.database.dependences import get_db
 from app.recipes.dtos.ask_recipe_dto import AskRecipeDTO
@@ -402,3 +403,55 @@ def get_recipes_by_user_id(user_id: int):
             )
             for recipe in recipes
         ]
+        
+def get_unique_ingredients(query: str = "") -> list[dict]:
+    """Retorna ingredientes únicos com todos os campos, como dicionários."""
+    with next(get_db()) as db:
+        search = f"%{query.lower()}%"
+
+        sql = text("""
+            SELECT DISTINCT ON (LOWER(name)) 
+                id, title, description, recipe_id, quantity, unity, price, img, name
+            FROM ingredient
+            WHERE LOWER(name) LIKE :search
+            AND img IS NOT NULL
+            AND img <> ''
+            AND LOWER(img) <> 'sem imagem'
+            AND LOWER(img) <> 'Nenhuma imagem encontrada.'
+            AND price IS NOT NULL
+            ORDER BY LOWER(name), id
+        """)
+
+        result = db.execute(sql, {"search": search})
+
+        return [
+            {
+                "id": row.id,
+                "title": row.title,
+                "description": row.description,
+                "recipe_id": row.recipe_id,
+                "quantity": row.quantity,
+                "unity": row.unity,
+                "price": row.price,
+                "img": row.img or row.title,
+                "name": row.name,
+            }
+            for row in result
+        ]
+
+def get_ingredient_by_id(ingredient_id: int) -> dict:
+    """ Busca um ingrediente pelo ID """
+    with next(get_db()) as db:
+        ingredient = db.query(Ingredient).filter(Ingredient.id == ingredient_id).first()
+        if not ingredient:
+            return None
+        return ingredient
+    
+def create_ingredient(name: str) -> Ingredient:
+    """ Cria um novo ingrediente """
+    with next(get_db()) as db:
+        new_ingredient = Ingredient(description=name)
+        db.add(new_ingredient)
+        db.commit()
+        db.refresh(new_ingredient)  # Aqui o ID é preenchido automaticamente
+        return new_ingredient

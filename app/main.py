@@ -29,7 +29,8 @@ from app.recipes.controller import (
     session_controller,
     collection_controller,
     users_controller,
-    mp_getway_controller
+    mp_getway_controller,
+    shopping_controller
 )
 
 
@@ -45,6 +46,7 @@ app.include_router(follow_controller.router, prefix="/follow", tags=["Follow"])
 app.include_router(likes_controller.router, prefix="/like", tags=["Like"])
 app.include_router(posts_controller.router, prefix="/post", tags=["Post"])
 app.include_router(comments_controller.router, prefix="/comments", tags=["Comments"])
+app.include_router(shopping_controller.router, prefix="/shopping", tags=["Shopping"])
 
 
 # Rota raiz

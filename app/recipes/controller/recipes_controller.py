@@ -15,17 +15,22 @@ from app.recipes.dtos.recipe_dto import (
     RecipeRequestFilterDTO,
     RecipeResponseDTO,
 )
+from app.recipes.dtos.shopping_dto import IngredientsAttDto, ShoppingItemsDTO, searchShoppingListDTO
 from app.recipes.services.IA.create_recipe import IA_recipe_creator
 from app.recipes.services.IA.generate_macro import popular_macros_para_todas_as_receitas
+from app.recipes.services.IA.ingredient_populator import popular_dados_ingrediente_por_id, popular_dados_ingredientes
 from app.recipes.services.collection_service import update_recipe_to_collection_service
 from app.recipes.services.recipe_service import (
     add_recipe_to_collection_service,
+    create_ingredient,
     create_recipe_service,
     embedding_recipes,
     get_all_recipe_service,
+    get_ingredient_by_id,
     get_issues_recipes,
     get_recipe_by_id_service,
     get_recipes_by_user_id,
+    get_unique_ingredients,
     search_recipes_by_embedding,
     update_recipe_service,
     delete_recipe_service,
@@ -33,6 +38,7 @@ from app.recipes.services.recipe_service import (
     ask_order_service,
     update_recipe_to_session_service,
 )
+from app.recipes.services.search_imagens import get_first_image_google
 from app.recipes.services.session_service import (
     add_recipe_to_session_service,
 )
@@ -296,5 +302,56 @@ def get_issues_recipes_route():
 def get_user_recipes_route(user_id: int):
     try:
         return get_recipes_by_user_id(user_id=user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+@router.get("/ia/populate_ingredients", status_code=200)
+def update_recipe_to_session_route():
+    try:
+        return popular_dados_ingredientes()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    
+
+@router.post("/ingredients/search", status_code=200,response_model=List[ShoppingItemsDTO])
+def search_ingredients_route(dto: searchShoppingListDTO):
+    try:
+        return get_unique_ingredients(
+            query=dto.query,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    
+
+@router.post("/ingredients/attributes/search", status_code=200,response_model=ShoppingItemsDTO)
+def search_ingredients_route(dto: IngredientsAttDto):
+    try:
+        ingredient = None
+        if dto.id:
+            ingredient = get_ingredient_by_id(ingredient_id=dto.id)
+        
+        if ingredient is None:
+            ingredient = create_ingredient(
+                name=dto.query,
+            )
+        if ingredient is None:
+            raise HTTPException(status_code=404, detail="error ao criar ingrediente")
+        
+        if ingredient.img is None or ingredient.img == "" or ingredient.img == "sem imagem":
+            ingredient.img = get_first_image_google(
+            query=dto.query or ingredient.name or ingredient.description,
+        )
+        if ingredient.price == 0 or ingredient.quantity == 0:
+            ingredient = popular_dados_ingrediente_por_id(item=ingredient)
+            
+        return ShoppingItemsDTO(
+            id=ingredient.id,
+            name=ingredient.name,
+            quantity=ingredient.quantity,
+            unity=ingredient.unity,
+            price=ingredient.price,
+            img=ingredient.img,
+            category=ingredient.category
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
