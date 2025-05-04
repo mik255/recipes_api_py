@@ -27,3 +27,4 @@ boto3
 botocore
 Pillow>=10.0.0
 pgvector
+stripe

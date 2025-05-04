@@ -36,6 +36,10 @@ env_vars = {
     "DB_HOST": get_ssm_param("DB_HOST"),
     "DB_PORT": get_ssm_param("DB_PORT"),
     "MP_ACCESS_TOKEN": get_ssm_param("MP_ACCESS_TOKEN"),
+    "GOOGLE_CUSTOM_SEARCH_API_KEY": get_ssm_param("GOOGLE_CUSTOM_SEARCH_API_KEY"),
+    "GOOGLE_CX_FROM_GOOGLE_SEARCH_API": get_ssm_param("GOOGLE_CX_FROM_GOOGLE_SEARCH_API"),
+    "STRIPE_SECRET_KEY": get_ssm_param("STRIPE_SECRET_KEY"),
+    "PRICE_ID": get_ssm_param("PRICE_ID"),
 }
 
 # Se estiver em debug, usa localhost para o Meilisearch

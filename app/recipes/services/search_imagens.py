@@ -11,8 +11,8 @@ def get_first_image_google(query: str) -> str:
     query = query + " fundo branco"
     url = "https://www.googleapis.com/customsearch/v1"
     params = {
-        "key": "AIzaSyBy2IMG6IDsXs1M134Elg2nTOXCl6b6R4c",  # ⚠️ Lembre-se de mover isso para um .env!
-        "cx": "a3bed842135474db2",
+        "key": os.getenv("GOOGLE_CUSTOM_SEARCH_API_KEY"),
+        "cx": os.getenv("GOOGLE_CX_FROM_GOOGLE_SEARCH_API"),
         "q": query,
         "searchType": "image",
         "num": 5  # Aumentado para aumentar chances de imagem válida
