@@ -141,7 +141,7 @@ def get_ingredients_images() -> List[ImageDTO]:
         raise HTTPException(status_code=500, detail=f"Erro ao listar imagens de ingredientes: {str(e)}")
     
 @router.post("/", response_model=RecipeResponseDTO, status_code=201)
-def create_recipe_route(dto: RecipeCreateDTO,user_id: int = Header(..., alias="X-User-Id")):
+def create_recipe_route(dto: RecipeCreateDTO,user_id: int = Header(default=1, alias="X-User-Id")):
     try:    
         # Se `image_url` for passado, baixa e salva no S3 antes de criar a receita
         if dto.images[0].url and dto.download_image == True:
