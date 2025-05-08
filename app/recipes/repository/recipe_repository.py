@@ -23,7 +23,6 @@ def get_recipe_by_id(db: Session, recipe_id: int):
 def get_all_sessions(db: Session):
     sessions = (
         db.query(SessionModel)
-        .filter(SessionModel.id != 6)
         .options(
             selectinload(SessionModel.recipes)
             .options(
@@ -41,6 +40,6 @@ def get_all_sessions(db: Session):
 
     for session in sessions:
         # Limita em memória após carregamento otimizado
-        session.recipes = session.recipes[:6]
+        session.recipes = session.recipes[:10]
 
     return sessions
