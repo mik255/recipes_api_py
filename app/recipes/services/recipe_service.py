@@ -334,7 +334,7 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
         if not use_embeddings:
             cur.execute("""
                 SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
-                    r.youtube_url, r.property, r.session_id,
+                    r.youtube_url, r.property, r.session_id,r.is_premium,
                     ARRAY_AGG(i.url) AS image
                 FROM recipe r
                 LEFT JOIN image i ON i.recipe_id = r.id
@@ -345,7 +345,7 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
         else:
             cur.execute("""
                 SELECT r.id, r.title, r.description, r.preparation_time, r.portions, r.dificulty, 
-                    r.youtube_url, r.property, r.session_id,
+                    r.youtube_url, r.property, r.session_id,r.is_premium,
                     ARRAY_AGG(i.url) AS image,
                     r.embedding <=> %s::vector AS distancia
                 FROM recipe r
@@ -371,8 +371,9 @@ def search_recipes_by_embedding(query: str = "", page: int = 1, size: int = 10):
                 "youtube_url": row[6],
                 "property": row[7],
                 "session_id": row[8],
-                "tumbnail": row[9][0] if row[9] else None,
-                "similarity_score": round(row[10], 4) if use_embeddings else None
+                "tumbnail": row[10][0] if row[10] else None,
+                "similarity_score": round(row[11], 4) if use_embeddings else None,
+                "is_premium": row[9],
             }
             for row in results
         ]

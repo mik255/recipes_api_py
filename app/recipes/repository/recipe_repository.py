@@ -31,6 +31,7 @@ def get_all_sessions(db: Session):
                     Recipe.title,
                     Recipe.description,
                     Recipe.property,
+                    Recipe.is_premium,
                 ),
                 selectinload(Recipe.images).load_only(Image.url),
             )

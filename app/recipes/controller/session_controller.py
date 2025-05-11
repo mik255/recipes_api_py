@@ -38,6 +38,7 @@ def get_session():
                         title=recipe.title,
                         description=recipe.description,
                         tumbnail=recipe.images[0].url if recipe.images else None,
+                        is_premium=recipe.is_premium,
                     )
                     for recipe in model_session.recipes
                 ]

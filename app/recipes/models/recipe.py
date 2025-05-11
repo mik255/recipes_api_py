@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, Float, Boolean
 from sqlalchemy.orm import relationship
 from app.database.config import Base
 from app.recipes.models.recipe_category import recipe_categories
@@ -14,7 +14,7 @@ class Recipe(Base):
     serving_size = Column(Integer, nullable=False, server_default="0")
     dificulty = Column(String, nullable=False, server_default="Fácil")
     portions = Column(Integer, nullable=False, server_default="1")
-
+    is_premium = Column(Boolean, nullable=False, server_default="0")
     images = relationship(
         "Image",
         back_populates="recipe",

@@ -40,6 +40,7 @@ class RecipeRequestFilterDTO(BaseModel):
     size: int | None = 10
     page: int | None = 1
     ingredients: List[str] | None = []
+    is_premium: Optional[bool] = False
     
     class Config:
         orm_mode = True
@@ -80,6 +81,7 @@ class RecipeResponseDTO(BaseModel):
     youtube_url: str | None = None
     property: str | None = 'admin',
     macro: MacroDTO | None = None
+    is_premium: Optional[bool] = False
     class Config:
         orm_mode = True
 
@@ -89,6 +91,7 @@ class RecipeListResponseDTO(BaseModel):
     description: Optional[str]
     tumbnail: Optional[str]
     property: str | None = ''
+    is_premium: Optional[bool] = False
 
     class Config:
         orm_mode = True
