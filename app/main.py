@@ -20,6 +20,7 @@ app = FastAPI(middleware=middleware)
 
 # Importando os controladores (controllers) dos módulos
 from app.recipes.controller import (
+    cardapio_digital_controller,
     comments_controller,
     follow_controller,
     likes_controller,
@@ -47,6 +48,7 @@ app.include_router(likes_controller.router, prefix="/like", tags=["Like"])
 app.include_router(posts_controller.router, prefix="/post", tags=["Post"])
 app.include_router(comments_controller.router, prefix="/comments", tags=["Comments"])
 app.include_router(shopping_controller.router, prefix="/shopping", tags=["Shopping"])
+app.include_router(cardapio_digital_controller.router, prefix="/cardapio-digital", tags=["carapiodigital"])
 
 
 # Rota raiz
