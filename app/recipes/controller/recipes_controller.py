@@ -169,9 +169,9 @@ def update_recipe_route(recipe_id: int, dto: RecipeCreateDTO):
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @router.post("/ia_recipe_creator", response_model=RecipeResponseDTO, status_code=201)
-def IA_recipe_creator_route(dto: IARecipeCreateDTO):
+def IA_recipe_creator_route(dto: IARecipeCreateDTO, user_id: int = Header(default=1, alias="X-User-Id")):
     try:
-        recipe = IA_recipe_creator(dto.title, dto.session_id)
+        recipe = IA_recipe_creator(dto.title, dto.session_id, user_id=user_id)
         add_recipe_to_session_service(session_id=dto.session_id, recipe_id=recipe.id)
         return recipe
     except Exception as e:

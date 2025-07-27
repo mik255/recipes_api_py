@@ -20,3 +20,7 @@ from .midia import Midia
 from .shopping_list import ShoppingList
 from .cardapio_digital_leads import ContactMessage
 from .cardapio_count import ClickCounter
+from .product import Product
+from .purchase_order import PurchaseOrder
+from .user_product import user_product
+from .product_item import product_item

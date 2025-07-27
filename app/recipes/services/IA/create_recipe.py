@@ -19,7 +19,7 @@ llm = OpenAI(temperature=0.3, max_tokens=1024)
 
 # Prompt que instrui o modelo a retornar **somente** o JSON no formato correto
 prompt_template = """
-Você é um assistente que gera receitas no formato JSON e não pode produzir nada além do JSON.
+Você é um assistente que gera receitas no formato JSON.
 Se precisar inserir quebras de linha em qualquer texto, use '\\n' (escape de barra invertida).
 
 O JSON deve ter exatamente os campos:
@@ -29,6 +29,9 @@ O JSON deve ter exatamente os campos:
 - images (lista vazia")
 - ingredients (lista de objetos com "description", "title")
 - preparations (lista de objetos com "title", "step" (int, em ordem de preparo), "description")
+- portions (int)
+- preparation_time (int)
+- dificulty (string, um dos valores: "Fácil", "Médio", "Difícil")
 
 Não inclua texto antes ou depois do objeto JSON, nem use crases (```).
 Apenas retorne o objeto JSON puro, com aspas duplas e chaves/colchetes balanceados.
@@ -46,7 +49,7 @@ prompt = PromptTemplate(
 
 chain = LLMChain(llm=llm, prompt=prompt,)
 
-def IA_recipe_creator(title: str, session_id: int):
+def IA_recipe_creator(title: str, session_id: int, user_id: int):
     # 1. Gera o texto (JSON bruto)
     raw_output = chain.run(recipe_title=title, session_id=session_id)
 
@@ -65,9 +68,9 @@ def IA_recipe_creator(title: str, session_id: int):
         data = json.loads(cleaned_output)
         # 4. Valida e cria o DTO Pydantic
         dto = RecipeCreateDTO(**data)
-        
+        dto.property = "user"  # Define a propriedade como 'admin' por padrão
         # 5. Chama seu serviço de criação
-        return create_recipe_service(dto)
+        return create_recipe_service(recipe_dto=dto,user_id=user_id)
     except Exception as e:
         print("Erro ao parsear ou salvar receita:", str(e))
         return None

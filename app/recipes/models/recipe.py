@@ -59,5 +59,7 @@ class Recipe(Base):
         back_populates="recipe",
         lazy="selectin"
     )
+    product_id = Column(Integer, ForeignKey("product.id"), index=True, nullable=True)
+    product = relationship("Product", back_populates="recipes", lazy="selectin")
     
 

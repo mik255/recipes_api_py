@@ -76,12 +76,13 @@ def popular_dados_ingredientes():
     db: Session = SessionLocal()
     try:
         ingredients = db.query(Ingredient).filter(
+            Ingredient.recipe_id.is_not(None),
             (Ingredient.quantity == 0) |
             (Ingredient.unity == "unidade") |
             (Ingredient.price == 0) |
             (Ingredient.title == "sem nome")
         ).all()
-
+       
         for ing in ingredients:
             try:
                 data = build_ingredient_prompt(ing.description)

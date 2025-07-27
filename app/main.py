@@ -26,6 +26,8 @@ from app.recipes.controller import (
     likes_controller,
     midia_controller,
     posts_controller,
+    product_controller,
+    purchase_order_controller,
     recipes_controller,
     session_controller,
     collection_controller,
@@ -49,7 +51,8 @@ app.include_router(posts_controller.router, prefix="/post", tags=["Post"])
 app.include_router(comments_controller.router, prefix="/comments", tags=["Comments"])
 app.include_router(shopping_controller.router, prefix="/shopping", tags=["Shopping"])
 app.include_router(cardapio_digital_controller.router, prefix="/cardapio-digital", tags=["carapiodigital"])
-
+app.include_router(purchase_order_controller.router, prefix="/purchase-order", tags=["purchase-order"])
+app.include_router(product_controller.router, prefix="/product", tags=["product"])
 
 # Rota raiz
 @app.get("/")

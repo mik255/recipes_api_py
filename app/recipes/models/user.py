@@ -24,3 +24,5 @@ class User(Base):
     creator_start_at = Column(DateTime(timezone=True), nullable=True)
     recipes = relationship("Recipe", back_populates="user")
     shopping_lists = relationship("ShoppingList", back_populates="user")
+    
+    purchase_orders = relationship("PurchaseOrder", back_populates="user")

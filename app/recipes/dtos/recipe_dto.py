@@ -13,17 +13,16 @@ class DificultyEnum(str,Enum):
     medio = 'Médio'
     dificil = 'Difícil'
 class RecipeCreateDTO(BaseModel):
-    id: int | None = None
     title: str
     images: List[ImageDTO]
     ingredients: List[IngredientDTO]
     preparations: List[PreparationDTO]
     description: str 
     session_id: Optional[int]
-    categories:List[str]
+    categories:Optional[List[str]] = []
     preparation_time: int
     #enum facil, medio, dificil
-    dificulty: DificultyEnum
+    dificulty: Optional[DificultyEnum] = DificultyEnum.facil
     portions : int
     collection_id: int | None = None
     youtube_url: str | None = None
@@ -83,15 +82,16 @@ class RecipeResponseDTO(BaseModel):
     macro: MacroDTO | None = None
     is_premium: Optional[bool] = False
     class Config:
-        orm_mode = True
+        from_attributes = True  # Necessário para funcionar com from_orm
 
 class RecipeListResponseDTO(BaseModel):
     id: int | None
     title: str
     description: Optional[str]
-    tumbnail: Optional[str]
+    tumbnail: Optional[str] = None
+    images: Optional[List[ImageDTO]] = []
     property: str | None = ''
     is_premium: Optional[bool] = False
 
     class Config:
-        orm_mode = True
+        from_attributes = True
