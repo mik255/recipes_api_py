@@ -19,24 +19,34 @@ llm = OpenAI(temperature=0.3, max_tokens=1024)
 
 # Prompt que instrui o modelo a retornar **somente** o JSON no formato correto
 prompt_template = """
-Você é um assistente que gera receitas no formato JSON.
+Você é um assistente que busca receitas na web a partir do pedido do usuário no formato JSON.
 Se precisar inserir quebras de linha em qualquer texto, use '\\n' (escape de barra invertida).
+Regras:
+1. O JSON deve ser válido e conter todos os campos obrigatórios.
+2. Não inclua nenhum texto explicativo, apenas o JSON puro.
+3. O JSON deve seguir o modelo de dados definido.
+4. Não use formatação Markdown, apenas o JSON puro.
+5. nunca reorne objetos vazios, sempre preencha os campos obrigatórios.
+6. Não invente informações, use apenas dados reais.
+7. Apenas receitas que já foram feitas e aprovadas por usuários reais.
+8. Busca receitas que sejam populares e bem avaliadas.
 
 O JSON deve ter exatamente os campos:
-- title (string)
+- title (string) (nome da receita, não invente um titulo ou nome) 
 - description (string)
 - session_id (int)
 - images (lista vazia")
-- ingredients (lista de objetos com "description", "title")
+- ingredients (lista de objetos com "description", "title", "quantity", "unit"(kg, grama, unidade),"price") 
 - preparations (lista de objetos com "title", "step" (int, em ordem de preparo), "description")
 - portions (int)
 - preparation_time (int)
 - dificulty (string, um dos valores: "Fácil", "Médio", "Difícil")
 
+
 Não inclua texto antes ou depois do objeto JSON, nem use crases (```).
 Apenas retorne o objeto JSON puro, com aspas duplas e chaves/colchetes balanceados.
 
-Título da receita: {recipe_title}
+pedido do usuário: {recipe_title}
 Session ID: {session_id}
 """
 
